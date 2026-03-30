@@ -1,44 +1,73 @@
+// Import des modules Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
-    getFirestore, collection, doc, setDoc, updateDoc, increment, onSnapshot, 
-    getDocs, writeBatch, getDoc, query, where, arrayUnion, orderBy, limit, addDoc, serverTimestamp
+    getFirestore,
+    collection,
+    doc,
+    setDoc,
+    updateDoc,
+    increment,
+    onSnapshot,
+    getDocs,
+    writeBatch,
+    getDoc,
+    query,
+    where,
+    arrayUnion,
+    orderBy,
+    limit,
+    addDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// --- CONFIGURATION FIREBASE ---
+// ⚠️ REMPLACE CECI PAR TA CONFIGURATION FIREBASE ⚠️
 const firebaseConfig = {
-    apiKey: "AIzaSyBGnRL-gycaoRQE3TN8vid_yWRJHrJ35PI",
-    authDomain: "cinq-contre-un.firebaseapp.com",
-    projectId: "cinq-contre-un",
-    storageBucket: "cinq-contre-un.firebasestorage.app",
-    messagingSenderId: "895355334637",
-    appId: "1:895355334637:web:10b61a46f9c8966d2a01e4"
-};
 
+    apiKey: "AIzaSyBGnRL-gycaoRQE3TN8vid_yWRJHrJ35PI",
+  
+    authDomain: "cinq-contre-un.firebaseapp.com",
+  
+    projectId: "cinq-contre-un",
+  
+    storageBucket: "cinq-contre-un.firebasestorage.app",
+  
+    messagingSenderId: "895355334637",
+  
+    appId: "1:895355334637:web:10b61a46f9c8966d2a01e4"
+  
+  };
+  
+
+// Initialisation Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- VARIABLES GLOBALES ---
+// Liste officielle des potes
+const USERS = ["Léo", "Liam", "Étienne", "Augustin", "Antime"];
 let currentUser = localStorage.getItem('cinqContreUnUser');
-let dbUsersList = [];
-let pendingUser = null;
-let currentBrId = null;
 
-const jokes = ["Et un de plus !", "Arrête de forcer...", "Machine ! 🤖", "Le doigt le plus musclé.", "Allez, encore un effort !"];
+// Blagues aléatoires
+const jokes = [
+    "Et un de plus !", "Arrête de forcer un peu...", "Tu as que ça à faire ?", 
+    "Machine ! 🤖", "Tricher n'est pas jouer.", "Le doigt le plus musclé de France.",
+    "Allez, encore un effort !", "Impressionnant. Vraiment.", "C'est ton boss qui va être content."
+];
 
-// --- ÉLÉMENTS DOM ---
+// Éléments du DOM
 const loginScreen = document.getElementById('login-screen');
 const appScreen = document.getElementById('app-screen');
-const dynamicUserGrid = document.getElementById('dynamic-user-grid');
-const codeLogin = document.getElementById('code-login');
+const btnMain = document.getElementById('main-btn');
+const jokeText = document.getElementById('joke-text');
+const logoutBtn = document.getElementById('logout-btn');
+
 const codeInput = document.getElementById('access-code-input');
 const codeSubmit = document.getElementById('access-code-submit');
 const codeError = document.getElementById('access-code-error');
-const cancelLoginBtn = document.getElementById('cancel-login');
-const userAvatar = document.getElementById('user-avatar');
-const adminBtn = document.getElementById('admin-btn');
-const logoutBtn = document.getElementById('logout-btn');
+const codeLogin = document.getElementById('code-login');
 
-// Dom BR & Commentaires
+const userAvatar = document.getElementById('user-avatar');
+
+const brFeedList = document.getElementById('br-feed-list');
 const brDetail = document.getElementById('br-detail');
 const brDetailText = document.getElementById('br-detail-text');
 const brCommentsList = document.getElementById('br-comments-list');
@@ -46,346 +75,320 @@ const brCommentInput = document.getElementById('br-comment-input');
 const brCommentSubmit = document.getElementById('br-comment-submit');
 const brDetailClose = document.getElementById('br-detail-close');
 
-// --- FONCTIONS IP & AUTO-LOGIN ---
+let pendingUser = null;
+let currentBrId = null;
+
+// --- Utilitaires IP ---
 async function getPublicIp() {
-    try { const res = await fetch('https://api.ipify.org?format=json'); return (await res.json()).ip; } 
-    catch (e) { return null; }
+    try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        return data.ip;
+    } catch (e) {
+        console.error("Impossible de récupérer l'IP", e);
+        return null;
+    }
 }
 
+async function saveCurrentIpForUser(userRef) {
+    const ip = await getPublicIp();
+    if (!ip) return;
+    try {
+        await updateDoc(userRef, {
+            ips: arrayUnion(ip)
+        });
+    } catch (e) {
+        console.error("Erreur lors de l'enregistrement de l'IP", e);
+    }
+}
+
+// --- Auto-login par IP ---
 async function autoLoginByIp() {
     const ip = await getPublicIp();
     if (!ip) return null;
-    const q = query(collection(db, "users"), where("ips", "array-contains", ip));
-    const snap = await getDocs(q);
-    return snap.empty ? null : snap.docs[0].data().name;
+
+    try {
+        const q = query(collection(db, "users"), where("ips", "array-contains", ip));
+        const snap = await getDocs(q);
+        if (snap.empty) return null;
+        const data = snap.docs[0].data();
+        return data.name || null;
+    } catch (e) {
+        console.error("Erreur autoLoginByIp", e);
+        return null;
+    }
 }
 
-// --- INITIALISATION ---
-async function fetchUsers() {
-    const snap = await getDocs(collection(db, "users"));
-    dbUsersList = [];
-    dynamicUserGrid.innerHTML = ''; 
-
-    if (snap.empty) {
-        // Création initiale si BDD vide
-        const defaultUsers = ["Léo", "Liam", "Étienne", "Augustin", "Antime"];
-        for (const u of defaultUsers) {
-            await setDoc(doc(db, "users", u), { name: u, totalScore: 0, weeklyScore: 0, accessCode: "1234" });
+// --- Logique d'initialisation ---
+async function init() {
+    if (!currentUser) {
+        const autoUser = await autoLoginByIp();
+        if (autoUser && USERS.includes(autoUser)) {
+            currentUser = autoUser;
+            localStorage.setItem('cinqContreUnUser', currentUser);
         }
-        await fetchUsers(); 
-        return;
     }
 
-    snap.forEach(doc => {
-        const d = doc.data();
-        dbUsersList.push(d.name);
-        const btn = document.createElement('button');
-        btn.className = 'login-btn';
-        btn.textContent = d.name;
-        btn.onclick = () => showCodeInput(d.name);
-        dynamicUserGrid.appendChild(btn);
+    if (currentUser && USERS.includes(currentUser)) {
+        loginScreen.classList.remove('active');
+        appScreen.classList.add('active');
+        document.getElementById('user-display-name').textContent = currentUser;
+        
+        // Initialiser l'utilisateur dans Firebase s'il n'existe pas
+        const userRef = doc(db, "users", currentUser);
+        await setDoc(userRef, { name: currentUser }, { merge: true });
+        
+        checkWeeklyReset(); // Vérifie si on doit reset la semaine
+        startListeners();   // Lance l'écoute en temps réel
+    } else {
+        loginScreen.classList.add('active');
+        appScreen.classList.remove('active');
+    }
+}
+
+// --- Connexion par code ---
+document.querySelectorAll('.login-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        pendingUser = e.target.getAttribute('data-name');
+        if (codeLogin) codeLogin.classList.add('visible');
+        if (codeInput) {
+            codeInput.value = '';
+            if (codeError) codeError.textContent = '';
+            codeInput.focus();
+        }
+    });
+});
+
+if (codeSubmit) {
+    codeSubmit.addEventListener('click', async () => {
+        if (!pendingUser) {
+            if (codeError) codeError.textContent = "Choisis d'abord ton prénom.";
+            return;
+        }
+        const code = codeInput.value.trim();
+        if (!code) {
+            if (codeError) codeError.textContent = "Entre ton code.";
+            return;
+        }
+
+        const userRef = doc(db, "users", pendingUser);
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+            if (codeError) codeError.textContent = "Utilisateur inconnu.";
+            return;
+        }
+
+        const data = snap.data();
+        const isSuperAdmin = !!data.isSuperAdmin;
+        if (data.accessCode !== code && !isSuperAdmin) {
+            if (codeError) codeError.textContent = "Code invalide.";
+            return;
+        }
+
+        currentUser = pendingUser;
+        localStorage.setItem('cinqContreUnUser', currentUser);
+        await setDoc(userRef, { name: currentUser }, { merge: true });
+        await saveCurrentIpForUser(userRef);
+        pendingUser = null;
+        if (codeLogin) codeLogin.classList.remove('visible');
+        init();
     });
 }
 
-async function init() {
-    try {
-        await fetchUsers(); // Charger la liste depuis Firebase
-
-        if (!currentUser) {
-            const autoUser = await autoLoginByIp();
-            if (autoUser && dbUsersList.includes(autoUser)) {
-                currentUser = autoUser;
-                localStorage.setItem('cinqContreUnUser', currentUser);
-            }
-        }
-
-        // --- ROUTAGE STRICT ---
-        if (currentUser && dbUsersList.includes(currentUser)) {
-            // Utilisateur Connecté
-            loginScreen.classList.remove('active');
-            appScreen.classList.add('active');
-            document.getElementById('user-display-name').textContent = currentUser;
-            adminBtn.style.display = (currentUser === "Étienne" || currentUser === "Etienne") ? 'block' : 'none';
-            
-            checkWeeklyReset(); 
-            startListeners();   
-        } else {
-            // Non connecté
-            appScreen.classList.remove('active');
-            loginScreen.classList.add('active');
-        }
-    } catch (error) {
-        console.error("Erreur Fatale:", error);
-        dynamicUserGrid.innerHTML = `<p style="color:#ff6b6b;">Erreur de connexion à Firebase. Vérifie ta connexion.</p>`;
-    }
-}
-
-// --- LOGIQUE DE CONNEXION ---
-function showCodeInput(name) {
-    pendingUser = name;
-    codeLogin.classList.add('visible');
-    dynamicUserGrid.style.display = 'none';
-    codeInput.value = '';
-    codeError.textContent = '';
-    codeInput.focus();
-}
-
-cancelLoginBtn.addEventListener('click', () => {
-    codeLogin.classList.remove('visible');
-    dynamicUserGrid.style.display = 'grid';
-    pendingUser = null;
-});
-
-codeSubmit.addEventListener('click', async () => {
-    if (!pendingUser || !codeInput.value.trim()) { codeError.textContent = "Code requis."; return; }
-    
-    const userRef = doc(db, "users", pendingUser);
-    const snap = await getDoc(userRef);
-    if (!snap.exists() || snap.data().accessCode !== codeInput.value.trim()) {
-        codeError.textContent = "Code invalide."; return;
-    }
-
-    currentUser = pendingUser;
-    localStorage.setItem('cinqContreUnUser', currentUser);
-    
-    const ip = await getPublicIp();
-    if (ip) await updateDoc(userRef, { ips: arrayUnion(ip) });
-
-    codeLogin.classList.remove('visible');
-    dynamicUserGrid.style.display = 'grid';
-    init();
-});
-
+// Déconnexion
 logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('cinqContreUnUser');
     currentUser = null;
     init();
 });
 
-// --- GESTION PROFIL (AVATAR) ---
-const profileModal = document.getElementById('profile-modal');
-userAvatar.addEventListener('click', () => profileModal.style.display = 'flex');
-document.getElementById('close-profile-btn').addEventListener('click', () => profileModal.style.display = 'none');
-
-document.getElementById('save-pic-btn').addEventListener('click', async () => {
-    const url = document.getElementById('profile-pic-url').value.trim();
-    if (url) await updateDoc(doc(db, "users", currentUser), { photoUrl: url });
-    profileModal.style.display = 'none';
-});
-
-document.getElementById('remove-pic-btn').addEventListener('click', async () => {
-    await updateDoc(doc(db, "users", currentUser), { photoUrl: null });
-    document.getElementById('profile-pic-url').value = '';
-    profileModal.style.display = 'none';
-});
-
-// --- AJOUTER UN +1 & NOTER LA SESSION ---
-const btnMain = document.getElementById('main-btn');
-const brModal = document.getElementById('br-modal');
-let brEvent = null;
-
-// Gérer les clics sur les étoiles
-document.querySelectorAll('.stars').forEach(container => {
-    const stars = container.querySelectorAll('span');
-    stars.forEach((star, index) => {
-        star.addEventListener('click', () => {
-            container.setAttribute('data-value', index + 1);
-            stars.forEach((s, i) => s.style.color = i <= index ? 'var(--gold)' : 'var(--text-muted)');
-        });
-    });
-});
-
-btnMain.addEventListener('click', (e) => {
+// --- Action Clic (+1) ---
+btnMain.addEventListener('click', async (e) => {
     if (!currentUser) return;
-    brEvent = e;
-    document.getElementById('br-desc').value = '';
-    document.querySelectorAll('.stars').forEach(c => {
-        c.setAttribute('data-value', '0');
-        c.querySelectorAll('span').forEach(s => s.style.color = 'var(--text-muted)');
-    });
-    brModal.style.display = 'flex';
-});
 
-document.getElementById('cancel-br').addEventListener('click', () => brModal.style.display = 'none');
+    // 1. Animation visuelle
+    createFloatingPlus(e);
+    jokeText.textContent = jokes[Math.floor(Math.random() * jokes.length)];
 
-document.getElementById('submit-br').addEventListener('click', async () => {
-    brModal.style.display = 'none';
-    if (brEvent) createFloatingPlus(brEvent);
-    document.getElementById('joke-text').textContent = jokes[Math.floor(Math.random() * jokes.length)];
-
-    const desc = document.getElementById('br-desc').value.trim();
-    const notes = {};
-    document.querySelectorAll('.stars').forEach(c => {
-        notes[c.getAttribute('data-category')] = parseInt(c.getAttribute('data-value')) || 0;
+    // 2. Mise à jour Firestore
+    const userRef = doc(db, "users", currentUser);
+    await updateDoc(userRef, {
+        totalScore: increment(1),
+        weeklyScore: increment(1)
     });
 
-    await updateDoc(doc(db, "users", currentUser), { totalScore: increment(1), weeklyScore: increment(1) });
-    await addDoc(collection(db, "br"), {
-        user: currentUser,
-        description: desc || "Session classique",
-        ratings: notes,
-        createdAt: serverTimestamp(),
-        weekId: getISOWeekString()
-    });
+    // 3. Description de la br
+    const description = prompt("Décris la br (facultatif) :", "");
+    if (description !== null && description.trim() !== "") {
+        await addDoc(collection(db, "br"), {
+            user: currentUser,
+            description: description.trim(),
+            createdAt: serverTimestamp(),
+            weekId: getISOWeekString()
+        });
+    }
 });
 
 function createFloatingPlus(e) {
     const plus = document.createElement('span');
-    plus.classList.add('floating-plus'); plus.textContent = '+1';
+    plus.classList.add('floating-plus');
+    plus.textContent = '+1';
+    
+    // Positionnement au centre du bouton
     const rect = btnMain.getBoundingClientRect();
-    plus.style.left = (rect.width / 2 - 15) + 'px'; plus.style.top = (rect.height / 2 - 20) + 'px';
+    plus.style.left = (rect.width / 2 - 15) + 'px';
+    plus.style.top = (rect.height / 2 - 20) + 'px';
+    
     btnMain.appendChild(plus);
     setTimeout(() => plus.remove(), 1000);
 }
 
-// --- ADMIN (ÉTIENNE) ---
-const adminModal = document.getElementById('admin-modal');
-adminBtn.addEventListener('click', () => {
-    adminModal.style.display = 'flex';
-    loadAdminUsers();
-});
-document.getElementById('close-admin-btn').addEventListener('click', () => adminModal.style.display = 'none');
-
-document.getElementById('admin-save-target').addEventListener('click', async () => {
-    const target = parseInt(document.getElementById('admin-target-input').value);
-    if (target > 0) {
-        await setDoc(doc(db, "system", "config"), { brTarget: target }, { merge: true });
-        alert("Objectif mis à jour !");
-    }
-});
-
-document.getElementById('admin-add-user').addEventListener('click', async () => {
-    const name = document.getElementById('admin-new-name').value.trim();
-    const code = document.getElementById('admin-new-code').value.trim();
-    if (name && code) {
-        await setDoc(doc(db, "users", name), { name: name, accessCode: code, totalScore: 0, weeklyScore: 0 });
-        alert(`${name} a été ajouté !`);
-        document.getElementById('admin-new-name').value = '';
-        document.getElementById('admin-new-code').value = '';
-        loadAdminUsers(); 
-    }
-});
-
-async function loadAdminUsers() {
-    const list = document.getElementById('admin-user-list');
-    list.innerHTML = 'Chargement...';
-    const snap = await getDocs(collection(db, "users"));
-    list.innerHTML = '';
-    snap.forEach(d => {
-        const data = d.data();
-        list.innerHTML += `<li><strong>${data.name}</strong> - Code : ${data.accessCode || 'Aucun'}</li>`;
-    });
-}
-
-// --- TEMPS RÉEL (SCORES, FEED, COMMENTAIRES) ---
+// --- Temps réel : Écoute des scores, historique, br ---
 function startListeners() {
-    // Écoute de l'objectif
-    onSnapshot(doc(db, "system", "config"), (docSnap) => {
-        if (docSnap.exists() && docSnap.data().brTarget) {
-            document.getElementById('target-container').style.display = 'block';
-            document.getElementById('target-count').textContent = docSnap.data().brTarget;
-        }
-    });
-
-    // Écoute des utilisateurs et scores
     onSnapshot(collection(db, "users"), (snapshot) => {
         let usersData = [];
         snapshot.forEach(d => {
             const data = d.data();
-            usersData.push({ name: data.name, total: data.totalScore || 0, weekly: data.weeklyScore || 0 });
+            // Sécurité : si les scores n'existent pas encore, on met 0
+            usersData.push({
+                name: data.name,
+                total: data.totalScore || 0,
+                weekly: data.weeklyScore || 0,
+                photoUrl: data.photoUrl || null
+            });
+            
+            // Mise à jour de MES scores en haut de l'écran
             if (data.name === currentUser) {
                 document.getElementById('total-score').textContent = data.totalScore || 0;
                 document.getElementById('weekly-score').textContent = data.weeklyScore || 0;
-                userAvatar.style.backgroundImage = data.photoUrl ? `url(${data.photoUrl})` : 'none';
+                if (userAvatar) {
+                    if (data.photoUrl) {
+                        userAvatar.style.backgroundImage = `url(${data.photoUrl})`;
+                    } else {
+                        userAvatar.style.backgroundImage = 'none';
+                    }
+                }
             }
         });
-        usersData.sort((a, b) => b.weekly - a.weekly);
-        const list = document.getElementById('leaderboard-list');
-        list.innerHTML = '';
-        usersData.forEach((u, i) => {
-            const li = document.createElement('li');
-            if (i === 0 && u.weekly > 0) li.className = 'rank-1';
-            if (i === usersData.length - 1 && usersData[0].weekly > 0) li.className = 'rank-last';
-            li.innerHTML = `<span>${i + 1}. ${u.name}</span> <strong>${u.weekly}</strong>`;
-            list.appendChild(li);
-        });
-    });
 
-    // Écoute du Feed des sessions
-    onSnapshot(query(collection(db, "br"), orderBy("createdAt", "desc"), limit(15)), (snapshot) => {
-        const feed = document.getElementById('br-feed-list');
-        if (!feed) return;
-        feed.innerHTML = '';
-        snapshot.forEach(brDoc => {
-            const d = brDoc.data();
-            const r = d.ratings || { duree: 0, plaisir: 0, qualite: 0 };
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="br-user-desc"><strong>${d.user}</strong> : ${d.description}</div>
-                <div class="br-ratings">
-                    <span>⏱️ ${r.duree}/5</span> | 
-                    <span>💦 ${r.plaisir}/5</span> | 
-                    <span>🎥 ${r.qualite}/5</span>
-                </div>
-            `;
-            // Ouvrir les détails en cliquant
-            li.addEventListener('click', () => openBrDetail(brDoc.id, d));
-            feed.appendChild(li);
-        });
+        updateLeaderboard(usersData);
     });
 
     // Écoute de l'historique
     onSnapshot(collection(db, "history"), (snapshot) => {
-        const hList = document.getElementById('history-list');
-        hList.innerHTML = '';
-        let hData = [];
-        snapshot.forEach(d => hData.push(d.data()));
-        hData.sort((a, b) => b.weekId.localeCompare(a.weekId));
-        hData.forEach(item => {
-            hList.innerHTML += `<li><span>Semaine ${item.weekId.split('-W')[1]}</span> <strong>${item.winner} (${item.score} pts)</strong></li>`;
+        const historyList = document.getElementById('history-list');
+        historyList.innerHTML = '';
+        let historyData = [];
+        snapshot.forEach(d => historyData.push(d.data()));
+        
+        // Trie par semaine décroissante
+        historyData.sort((a, b) => b.weekId.localeCompare(a.weekId));
+        
+        historyData.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>Semaine ${item.weekId.split('-W')[1]}</span> <strong>${item.winner} (${item.score} pts)</strong>`;
+            historyList.appendChild(li);
+        });
+    });
+
+    // Feed des br
+    const brQuery = query(collection(db, "br"), orderBy("createdAt", "desc"), limit(10));
+    onSnapshot(brQuery, (snapshot) => {
+        if (!brFeedList) return;
+        brFeedList.innerHTML = '';
+        snapshot.forEach(brDoc => {
+            const brData = brDoc.data();
+            const li = document.createElement('li');
+            li.textContent = `${brData.user} : ${brData.description}`;
+            li.addEventListener('click', () => openBrDetail(brDoc.id, brData));
+            brFeedList.appendChild(li);
         });
     });
 }
 
-// --- LOGIQUE COMMENTAIRES ---
+function updateLeaderboard(usersData) {
+    // Trier par score de la semaine décroissant
+    usersData.sort((a, b) => b.weekly - a.weekly);
+    const list = document.getElementById('leaderboard-list');
+    list.innerHTML = '';
+
+    usersData.forEach((u, index) => {
+        const li = document.createElement('li');
+        let classes = '';
+        if (index === 0 && u.weekly > 0) classes = 'rank-1'; // Le premier
+        if (index === usersData.length - 1 && usersData[0].weekly > 0) classes = 'rank-last'; // Le dernier
+        
+        li.className = classes;
+        li.innerHTML = `<span>${index + 1}. ${u.name}</span> <strong>${u.weekly}</strong>`;
+        list.appendChild(li);
+    });
+}
+
+// --- Détail des br, commentaires et likes ---
 function openBrDetail(brId, brData) {
     currentBrId = brId;
-    brDetailText.innerHTML = `<strong>${brData.user}</strong> : ${brData.description}`;
+    if (!brDetail || !brDetailText || !brCommentsList) return;
+
+    brDetailText.textContent = `${brData.user} : ${brData.description}`;
     brDetail.style.display = 'block';
 
-    const commentsQuery = query(collection(db, "br", brId, "comments"), orderBy("createdAt", "asc"));
+    const commentsRef = collection(db, "br", brId, "comments");
+    const commentsQuery = query(commentsRef, orderBy("createdAt", "asc"));
     onSnapshot(commentsQuery, (snapshot) => {
         brCommentsList.innerHTML = '';
         snapshot.forEach(commentDoc => {
             const c = commentDoc.data();
             const li = document.createElement('li');
-            li.innerHTML = `<span><strong>${c.user}</strong> : ${c.text}</span>`;
+            li.innerHTML = `
+                <span><strong>${c.user}</strong> : ${c.text}</span>
+                <span>
+                    <button class="br-comment-like" data-id="${commentDoc.id}">♥ ${c.likes || 0}</button>
+                </span>
+            `;
             brCommentsList.appendChild(li);
+        });
+
+        brCommentsList.querySelectorAll('.br-comment-like').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const commentId = btn.getAttribute('data-id');
+                const commentRef = doc(db, "br", brId, "comments", commentId);
+                await updateDoc(commentRef, { likes: increment(1) });
+            });
         });
     });
 }
 
-brDetailClose.addEventListener('click', () => {
-    brDetail.style.display = 'none';
-    currentBrId = null;
-});
-
-brCommentSubmit.addEventListener('click', async () => {
-    if (!currentBrId || !currentUser) return;
-    const text = brCommentInput.value.trim();
-    if (!text) return;
-
-    await addDoc(collection(db, "br", currentBrId, "comments"), {
-        user: currentUser, text, createdAt: serverTimestamp()
+if (brDetailClose) {
+    brDetailClose.addEventListener('click', () => {
+        if (brDetail) brDetail.style.display = 'none';
+        currentBrId = null;
     });
-    brCommentInput.value = '';
-});
+}
 
-// --- UTILS (SEMAINES & RESET) ---
+if (brCommentSubmit) {
+    brCommentSubmit.addEventListener('click', async () => {
+        if (!currentBrId || !currentUser) return;
+        const text = brCommentInput.value.trim();
+        if (!text) return;
+
+        const commentsRef = collection(db, "br", currentBrId, "comments");
+        await addDoc(commentsRef, {
+            user: currentUser,
+            text,
+            createdAt: serverTimestamp(),
+            likes: 0
+        });
+        brCommentInput.value = '';
+    });
+}
+
+// --- Gestion du Reset Hebdomadaire ---
 function getISOWeekString() {
-    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + 4 - (d.getDay()||7));
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay()||7)); // Jeudi de la semaine courante
     const yearStart = new Date(d.getFullYear(),0,1);
-    const weekNo = Math.ceil((((d - yearStart)/86400000)+1)/7);
+    const weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
     return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
 }
 
@@ -393,23 +396,50 @@ async function checkWeeklyReset() {
     const currentWeek = getISOWeekString();
     const configRef = doc(db, "system", "config");
     const configSnap = await getDoc(configRef);
-    if (!configSnap.exists()) { await setDoc(configRef, { currentWeek }); return; }
     
+    if (!configSnap.exists()) {
+        await setDoc(configRef, { currentWeek: currentWeek });
+        return;
+    }
+
     const savedWeek = configSnap.data().currentWeek;
+    
+    // Si la semaine enregistrée en base est différente de la semaine actuelle
     if (savedWeek !== currentWeek) {
+        // 1. Récupérer les utilisateurs pour trouver le gagnant
         const usersSnap = await getDocs(collection(db, "users"));
-        let bestUser = null, bestScore = -1;
-        usersSnap.forEach(d => {
-            if ((d.data().weeklyScore || 0) > bestScore) { bestScore = d.data().weeklyScore; bestUser = d.data().name; }
+        let bestUser = null;
+        let bestScore = -1;
+        
+        usersSnap.forEach(doc => {
+            const d = doc.data();
+            if ((d.weeklyScore || 0) > bestScore) {
+                bestScore = d.weeklyScore;
+                bestUser = d.name;
+            }
         });
 
+        // 2. Lancer un Batch (transaction groupée)
         const batch = writeBatch(db);
-        if (bestUser && bestScore > 0) batch.set(doc(db, "history", savedWeek), { winner: bestUser, score: bestScore, weekId: savedWeek });
-        usersSnap.forEach(u => batch.update(doc(db, "users", u.id), { weeklyScore: 0 }));
-        batch.update(configRef, { currentWeek });
+        
+        // Sauvegarder le gagnant dans l'historique
+        if (bestUser && bestScore > 0) {
+            const historyRef = doc(db, "history", savedWeek);
+            batch.set(historyRef, { winner: bestUser, score: bestScore, weekId: savedWeek });
+        }
+
+        // Reset les scores de la semaine à 0 pour tout le monde
+        usersSnap.forEach(userDoc => {
+            batch.update(doc(db, "users", userDoc.id), { weeklyScore: 0 });
+        });
+
+        // Mettre à jour la semaine courante
+        batch.update(configRef, { currentWeek: currentWeek });
+        
+        // Exécuter
         await batch.commit();
+        console.log("Reset de la semaine effectué !");
     }
 }
-
-// Démarrage de l'app !
+// Lancement au chargement
 init();
