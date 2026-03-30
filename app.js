@@ -229,7 +229,9 @@ if (document.getElementById('apply-photo-btn')) {
     });
     document.getElementById('delete-photo-btn').addEventListener('click', async () => {
         const userRef = doc(db, "users", currentUser);
-        await updateDoc(userRef, { photoUrl: null });
+        await setDoc(userRef, { photoUrl: null }, { merge: true });
+        userPhotoByUser[currentUser] = null;
+        localStorage.removeItem(`cinqContreUnPhoto_${currentUser}`);
         userAvatar.style.backgroundImage = 'none';
         closePhotoModal();
     });
@@ -238,7 +240,7 @@ if (document.getElementById('apply-photo-btn')) {
 async function updatePhotoInDb(photoUrl) {
     const userRef = doc(db, "users", currentUser);
     try {
-        await updateDoc(userRef, { photoUrl });
+        await setDoc(userRef, { photoUrl }, { merge: true });
     } catch (e) {
         console.error('Erreur update photo Firestore', e);
     }

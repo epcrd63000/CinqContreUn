@@ -85,16 +85,16 @@ header h1 { font-size: 1.5rem; }
 
 .button-container { text-align: center; margin-bottom: 40px; position: relative; }
 #main-btn {
-    width: 170px; height: 170px; border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #a46afc, #7a2ed9 70%);
-    border: 2px solid rgba(255,255,255,0.3); color: white;
-    font-size: 2.6rem; font-weight: bold;
-    box-shadow: 0 0 28px rgba(128, 65, 235, 0.6), inset 0 0 18px rgba(255, 255, 255, 0.15);
+    width: 180px; height: 180px; border-radius: 50%;
+    background-size: 95%; background-repeat: no-repeat; background-position: center;
+    border: 3px solid #750808; color: white;
+    box-shadow: 0 0 30px rgba(117, 8, 8, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
 }
-#main-btn:hover { transform: scale(1.06); box-shadow: 0 0 34px rgba(128, 65, 235, 0.8), inset 0 0 22px rgba(255, 255, 255, 0.2);
+#main-btn:hover { transform: scale(1.08); box-shadow: 0 0 40px rgba(117, 8, 8, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.15);
 }
-#main-btn:active { transform: scale(0.96); }
+#main-btn:active { transform: scale(0.94); }
     box-shadow: 0 10px 20px rgba(187, 134, 252, 0.4);
     cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
     user-select: none; -webkit-tap-highlight-color: transparent;
