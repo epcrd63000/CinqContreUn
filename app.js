@@ -239,11 +239,24 @@ if (document.getElementById('apply-photo-btn')) {
 
 async function updatePhotoInDb(photoUrl) {
     const userRef = doc(db, "users", currentUser);
+    
     try {
-        await setDoc(userRef, { photoUrl }, { merge: true });
+        localStorage.removeItem(`cinqContreUnPhoto_${currentUser}`);
+    } catch (e) {
+        console.error('Erreur suppression localStorage', e);
+    }
+    
+    try {
+        await updateDoc(userRef, { photoUrl });
     } catch (e) {
         console.error('Erreur update photo Firestore', e);
+        try {
+            await setDoc(userRef, { photoUrl }, { merge: true });
+        } catch (e2) {
+            console.error('Erreur setDoc photo Firestore', e2);
+        }
     }
+    
     userPhotoByUser[currentUser] = photoUrl;
     if (typeof window !== 'undefined' && currentUser) {
         localStorage.setItem(`cinqContreUnPhoto_${currentUser}`, photoUrl);
