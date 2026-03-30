@@ -121,6 +121,17 @@ async function autoLoginByIp() {
 
 // --- Logique d'initialisation ---
 async function init() {
+    // Génère les champs manquants une seule fois (pour le dev).
+    // Utile si tu as importé des users sans `accessCode` / `isSuperAdmin` / `ips`.
+    if (!localStorage.getItem('cinqContreUnNormalizedUsers')) {
+        try {
+            await normalizeUsers();
+            localStorage.setItem('cinqContreUnNormalizedUsers', '1');
+        } catch (e) {
+            console.error("normalizeUsers() a échoué", e);
+        }
+    }
+
     if (!currentUser) {
         const autoUser = await autoLoginByIp();
         if (autoUser && USERS.includes(autoUser)) {
@@ -444,7 +455,7 @@ async function checkWeeklyReset() {
 async function normalizeUsers() {
     const usersSnap = await getDocs(collection(db, "users"));
 
-    usersSnap.forEach(async (userDoc) => {
+    for (const userDoc of usersSnap.docs) {
         const data = userDoc.data();
 
         // Valeurs par défaut
@@ -468,7 +479,7 @@ async function normalizeUsers() {
         if (Object.keys(update).length > 0) {
             await updateDoc(doc(db, "users", userDoc.id), update);
         }
-    });
+    }
 
     console.log("Normalisation users terminée");
 }
