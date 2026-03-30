@@ -52,32 +52,46 @@ async function autoLoginByIp() {
     return snap.empty ? null : snap.docs[0].data().name;
 }
 
-// --- Initialisation ---
-async function fetchUsers() {
-    const snap = await getDocs(collection(db, "users"));
-    dbUsersList = [];
-    dynamicUserGrid.innerHTML = ''; // Vider le chargement
 
-    if (snap.empty) {
-        // Initialiser les 5 de base s'il n'y a personne en BDD
-        const defaultUsers = ["Léo", "Liam", "Étienne", "Augustin", "Antime"];
-        for (const u of defaultUsers) {
-            await setDoc(doc(db, "users", u), { name: u, totalScore: 0, weeklyScore: 0, accessCode: "1234" });
+// --- Initialisation ---
+async function init() {
+    // 1. On cache tout par précaution pendant le chargement
+    loginScreen.classList.remove('active');
+    appScreen.classList.remove('active');
+
+    await fetchUsers(); // Charger les profils
+
+    // 2. Vérification si non connecté en local (auto-login par IP)
+    if (!currentUser) {
+        const autoUser = await autoLoginByIp();
+        if (autoUser && dbUsersList.includes(autoUser)) {
+            currentUser = autoUser;
+            localStorage.setItem('cinqContreUnUser', currentUser);
         }
-        await fetchUsers(); // Recharger
-        return;
     }
 
-    snap.forEach(doc => {
-        const d = doc.data();
-        dbUsersList.push(d.name);
-        // Créer les boutons de login
-        const btn = document.createElement('button');
-        btn.className = 'login-btn';
-        btn.textContent = d.name;
-        btn.onclick = () => showCodeInput(d.name);
-        dynamicUserGrid.appendChild(btn);
-    });
+    // 3. Routage strict : Dashboard OU Connexion
+    if (currentUser && dbUsersList.includes(currentUser)) {
+        // === CONNECTÉ ===
+        loginScreen.classList.remove('active');
+        appScreen.classList.add('active'); // On affiche le dashboard
+        
+        document.getElementById('user-display-name').textContent = currentUser;
+        
+        // Afficher bouton admin si Étienne
+        if (currentUser === "Étienne" || currentUser === "Etienne") {
+            adminBtn.style.display = 'block';
+        } else {
+            adminBtn.style.display = 'none';
+        }
+
+        checkWeeklyReset(); 
+        startListeners();   
+    } else {
+        // === NON CONNECTÉ ===
+        appScreen.classList.remove('active');
+        loginScreen.classList.add('active'); // On affiche la connexion
+    }
 }
 
 async function init() {
