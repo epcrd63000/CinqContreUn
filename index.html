@@ -8,11 +8,12 @@
 </head>
 <body>
 
-    <section id="login-screen" class="screen ">
+    <section id="login-screen" class="screen">
         <h1>CinqContreUn 🖐️</h1>
         <p>Qui es-tu ?</p>
+        
         <div id="dynamic-user-grid" class="user-grid">
-            <p style="text-align:center; width:100%;">Chargement...</p>
+            <p style="text-align:center; width:100%;">Chargement des profils...</p>
         </div>
 
         <div id="code-login" class="code-login">
@@ -158,95 +159,6 @@
             <button id="close-admin-btn" class="secondary-btn" style="width: 100%; margin-top: 15px;">Fermer</button>
         </div>
     </div>
-
-    <script type="module" src="app.js"></script>
-</body>
-</html><!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CinqContreUn</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-    <section id="login-screen" class="screen active">
-        <h1>CinqContreUn 🖐️</h1>
-        <p>Qui es-tu ?</p>
-        <div class="user-grid">
-            <button class="login-btn" data-name="Léo">Léo</button>
-            <button class="login-btn" data-name="Liam">Liam</button>
-            <button class="login-btn" data-name="Étienne">Étienne</button>
-            <button class="login-btn" data-name="Augustin">Augustin</button>
-            <button class="login-btn" data-name="Antime">Antime</button>
-        </div>
-
-        <div id="code-login" class="code-login">
-            <p>Entre ton code secret pour continuer :</p>
-            <div class="code-row">
-                <input type="password" id="access-code-input" placeholder="Code secret" autocomplete="one-time-code">
-                <button id="access-code-submit">Valider</button>
-            </div>
-            <p id="access-code-error" class="error-msg"></p>
-        </div>
-    </section>
-
-    <section id="app-screen" class="screen">
-        <header>
-            <div class="user-info">
-                <div id="user-avatar" class="avatar"></div>
-                <h1>Salut <span id="user-display-name"></span> !</h1>
-            </div>
-            <button id="logout-btn">Changer de compte</button>
-        </header>
-
-        <main>
-            <div class="score-container">
-                <div class="score-box">
-                    <span>Score Total</span>
-                    <strong id="total-score">0</strong>
-                </div>
-                <div class="score-box highlight">
-                    <span>Cette semaine</span>
-                    <strong id="weekly-score">0</strong>
-                </div>
-            </div>
-
-            <div class="button-container">
-                <button id="main-btn">
-                    <span class="btn-text">+1</span>
-                </button>
-                <p id="joke-text">Prêt à spammer ?</p>
-            </div>
-
-            <div class="leaderboard">
-                <h2>🏆 Classement de la semaine</h2>
-                <ul id="leaderboard-list">
-                    </ul>
-            </div>
-
-            <div class="br-feed">
-                <h2>🔥 Dernières br</h2>
-                <ul id="br-feed-list"></ul>
-            </div>
-
-            <div class="br-detail" id="br-detail" style="display:none;">
-                <h2>Détails de la br</h2>
-                <p id="br-detail-text"></p>
-                <ul id="br-comments-list"></ul>
-                <input type="text" id="br-comment-input" placeholder="Ajoute un commentaire">
-                <button id="br-comment-submit">Envoyer</button>
-                <button id="br-detail-close">Fermer</button>
-            </div>
-
-            <div class="history">
-                <h2>📜 Palmarès (Semaines passées)</h2>
-                <ul id="history-list">
-                    </ul>
-            </div>
-        </main>
-    </section>
 
     <script type="module" src="app.js"></script>
 </body>
