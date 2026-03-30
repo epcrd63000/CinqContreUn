@@ -18,11 +18,21 @@
             <button class="login-btn" data-name="Augustin">Augustin</button>
             <button class="login-btn" data-name="Antime">Antime</button>
         </div>
+
+        <div id="code-login" class="code-login">
+            <p>Entre ton code secret pour continuer :</p>
+            <input type="password" id="access-code-input" placeholder="Code secret">
+            <button id="access-code-submit">Valider</button>
+            <p id="access-code-error" class="error-msg"></p>
+        </div>
     </section>
 
     <section id="app-screen" class="screen">
         <header>
-            <h1>Salut <span id="user-display-name"></span> !</h1>
+            <div class="user-info">
+                <div id="user-avatar" class="avatar"></div>
+                <h1>Salut <span id="user-display-name"></span> !</h1>
+            </div>
             <button id="logout-btn">Changer de compte</button>
         </header>
 
@@ -51,6 +61,20 @@
                     </ul>
             </div>
 
+            <div class="br-feed">
+                <h2>🔥 Dernières br</h2>
+                <ul id="br-feed-list"></ul>
+            </div>
+
+            <div class="br-detail" id="br-detail" style="display:none;">
+                <h2>Détails de la br</h2>
+                <p id="br-detail-text"></p>
+                <ul id="br-comments-list"></ul>
+                <input type="text" id="br-comment-input" placeholder="Ajoute un commentaire">
+                <button id="br-comment-submit">Envoyer</button>
+                <button id="br-detail-close">Fermer</button>
+            </div>
+
             <div class="history">
                 <h2>📜 Palmarès (Semaines passées)</h2>
                 <ul id="history-list">
@@ -59,6 +83,6 @@
         </main>
     </section>
 
-    <script type="module" src="app.js"></script>
+    <script type="module" src="app.json"></script>
 </body>
 </html>
