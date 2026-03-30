@@ -48,6 +48,7 @@ body {
     background-color: #000; color: var(--text-main);
     font-size: 1rem;
     outline: none;
+    appearance: none;
     -webkit-appearance: none;
 }
 .code-login button {
@@ -92,14 +93,9 @@ header h1 { font-size: 1.5rem; }
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
 }
-#main-btn:hover { transform: scale(1.08); box-shadow: 0 0 40px rgba(117, 8, 8, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.15);
-}
+#main-btn:hover { transform: scale(1.08); box-shadow: 0 0 40px rgba(117, 8, 8, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.15); }
 #main-btn:active { transform: scale(0.94); }
-    box-shadow: 0 10px 20px rgba(187, 134, 252, 0.4);
-    cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
-    user-select: none; -webkit-tap-highlight-color: transparent;
-}
-#main-btn:active { transform: scale(0.92); box-shadow: 0 5px 10px rgba(187, 134, 252, 0.4); }
+
 #joke-text { margin-top: 20px; font-style: italic; color: var(--text-muted); min-height: 24px; }
 
 .floating-plus {
