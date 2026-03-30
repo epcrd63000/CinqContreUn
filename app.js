@@ -63,6 +63,7 @@ const logoutBtn = document.getElementById('logout-btn');
 const codeInput = document.getElementById('access-code-input');
 const codeSubmit = document.getElementById('access-code-submit');
 const codeError = document.getElementById('access-code-error');
+const codeLogin = document.getElementById('code-login');
 
 const userAvatar = document.getElementById('user-avatar');
 
@@ -148,6 +149,7 @@ async function init() {
 document.querySelectorAll('.login-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         pendingUser = e.target.getAttribute('data-name');
+        if (codeLogin) codeLogin.classList.add('visible');
         if (codeInput) {
             codeInput.value = '';
             if (codeError) codeError.textContent = '';
@@ -187,6 +189,7 @@ if (codeSubmit) {
         await setDoc(userRef, { name: currentUser }, { merge: true });
         await saveCurrentIpForUser(userRef);
         pendingUser = null;
+        if (codeLogin) codeLogin.classList.remove('visible');
         init();
     });
 }
