@@ -213,15 +213,56 @@ if (document.getElementById('apply-photo-btn')) {
         const urlInput = document.getElementById('photo-url-input').value.trim();
         const fileInput = document.getElementById('photo-file-input');
         let photoUrl = urlInput;
+        
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                photoUrl = e.target.result;
-                await updatePhotoInDb(photoUrl);
-                closePhotoModal();
-            };
-            reader.readAsDataURL(file);
+            
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const img = new Image();
+                        img.onload = async () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            let width = img.width;
+                            let height = img.height;
+                            const maxSize = 400;
+                            
+                            if (width > height) {
+                                if (width > maxSize) {
+                                    height = Math.round((height * maxSize) / width);
+                                    width = maxSize;
+                                }
+                            } else {
+                                if (height > maxSize) {
+                                    width = Math.round((width * maxSize) / height);
+                                    height = maxSize;
+                                }
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            const compressedUrl = canvas.toDataURL('image/jpeg', 0.7);
+                            await updatePhotoInDb(compressedUrl);
+                            closePhotoModal();
+                        };
+                        img.onerror = () => alert('Erreur chargement image');
+                        img.src = e.target.result;
+                    } catch (err) {
+                        console.error('Erreur compression image:', err);
+                        alert('Erreur lors du traitement de l\'image');
+                    }
+                };
+                reader.onerror = () => alert('Erreur lecture fichier');
+                reader.readAsDataURL(file);
+            } catch (err) {
+                console.error('Erreur fichier:', err);
+                alert('Erreur sélection fichier');
+            }
         } else if (photoUrl) {
             await updatePhotoInDb(photoUrl);
             closePhotoModal();
