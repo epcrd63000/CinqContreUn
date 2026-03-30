@@ -1,11 +1,10 @@
-// Import des modules Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
     getFirestore, collection, doc, setDoc, updateDoc, increment, onSnapshot, 
     getDocs, writeBatch, getDoc, query, where, arrayUnion, orderBy, limit, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// ⚠️ GARDE TA CONFIGURATION FIREBASE ⚠️
+// --- CONFIGURATION FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyBGnRL-gycaoRQE3TN8vid_yWRJHrJ35PI",
     authDomain: "cinq-contre-un.firebaseapp.com",
@@ -18,13 +17,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// --- VARIABLES GLOBALES ---
 let currentUser = localStorage.getItem('cinqContreUnUser');
-let dbUsersList = []; // Liste dynamique
+let dbUsersList = [];
+let pendingUser = null;
+let currentBrId = null;
 
-// Blagues aléatoires
 const jokes = ["Et un de plus !", "Arrête de forcer...", "Machine ! 🤖", "Le doigt le plus musclé.", "Allez, encore un effort !"];
 
-// Éléments du DOM
+// --- ÉLÉMENTS DOM ---
 const loginScreen = document.getElementById('login-screen');
 const appScreen = document.getElementById('app-screen');
 const dynamicUserGrid = document.getElementById('dynamic-user-grid');
@@ -35,10 +36,17 @@ const codeError = document.getElementById('access-code-error');
 const cancelLoginBtn = document.getElementById('cancel-login');
 const userAvatar = document.getElementById('user-avatar');
 const adminBtn = document.getElementById('admin-btn');
+const logoutBtn = document.getElementById('logout-btn');
 
-let pendingUser = null;
+// Dom BR & Commentaires
+const brDetail = document.getElementById('br-detail');
+const brDetailText = document.getElementById('br-detail-text');
+const brCommentsList = document.getElementById('br-comments-list');
+const brCommentInput = document.getElementById('br-comment-input');
+const brCommentSubmit = document.getElementById('br-comment-submit');
+const brDetailClose = document.getElementById('br-detail-close');
 
-// --- Utilitaires IP ---
+// --- FONCTIONS IP & AUTO-LOGIN ---
 async function getPublicIp() {
     try { const res = await fetch('https://api.ipify.org?format=json'); return (await res.json()).ip; } 
     catch (e) { return null; }
@@ -52,80 +60,67 @@ async function autoLoginByIp() {
     return snap.empty ? null : snap.docs[0].data().name;
 }
 
+// --- INITIALISATION ---
+async function fetchUsers() {
+    const snap = await getDocs(collection(db, "users"));
+    dbUsersList = [];
+    dynamicUserGrid.innerHTML = ''; 
 
-// --- Initialisation ---
-async function init() {
-    // 1. On cache tout par précaution pendant le chargement
-    loginScreen.classList.remove('active');
-    appScreen.classList.remove('active');
-
-    await fetchUsers(); // Charger les profils
-
-    // 2. Vérification si non connecté en local (auto-login par IP)
-    if (!currentUser) {
-        const autoUser = await autoLoginByIp();
-        if (autoUser && dbUsersList.includes(autoUser)) {
-            currentUser = autoUser;
-            localStorage.setItem('cinqContreUnUser', currentUser);
+    if (snap.empty) {
+        // Création initiale si BDD vide
+        const defaultUsers = ["Léo", "Liam", "Étienne", "Augustin", "Antime"];
+        for (const u of defaultUsers) {
+            await setDoc(doc(db, "users", u), { name: u, totalScore: 0, weeklyScore: 0, accessCode: "1234" });
         }
+        await fetchUsers(); 
+        return;
     }
 
-    // 3. Routage strict : Dashboard OU Connexion
-    if (currentUser && dbUsersList.includes(currentUser)) {
-        // === CONNECTÉ ===
-        loginScreen.classList.remove('active');
-        appScreen.classList.add('active'); // On affiche le dashboard
-        
-        document.getElementById('user-display-name').textContent = currentUser;
-        
-        // Afficher bouton admin si Étienne
-        if (currentUser === "Étienne" || currentUser === "Etienne") {
-            adminBtn.style.display = 'block';
-        } else {
-            adminBtn.style.display = 'none';
-        }
-
-        checkWeeklyReset(); 
-        startListeners();   
-    } else {
-        // === NON CONNECTÉ ===
-        appScreen.classList.remove('active');
-        loginScreen.classList.add('active'); // On affiche la connexion
-    }
+    snap.forEach(doc => {
+        const d = doc.data();
+        dbUsersList.push(d.name);
+        const btn = document.createElement('button');
+        btn.className = 'login-btn';
+        btn.textContent = d.name;
+        btn.onclick = () => showCodeInput(d.name);
+        dynamicUserGrid.appendChild(btn);
+    });
 }
 
 async function init() {
-    await fetchUsers(); // Charger les profils
+    try {
+        await fetchUsers(); // Charger la liste depuis Firebase
 
-    if (!currentUser) {
-        const autoUser = await autoLoginByIp();
-        if (autoUser && dbUsersList.includes(autoUser)) {
-            currentUser = autoUser;
-            localStorage.setItem('cinqContreUnUser', currentUser);
+        if (!currentUser) {
+            const autoUser = await autoLoginByIp();
+            if (autoUser && dbUsersList.includes(autoUser)) {
+                currentUser = autoUser;
+                localStorage.setItem('cinqContreUnUser', currentUser);
+            }
         }
-    }
 
-    if (currentUser && dbUsersList.includes(currentUser)) {
-        loginScreen.classList.remove('active');
-        appScreen.classList.add('active');
-        document.getElementById('user-display-name').textContent = currentUser;
-        
-        // Afficher bouton admin si Étienne
-        if (currentUser === "Étienne" || currentUser === "Etienne") {
-            adminBtn.style.display = 'block';
+        // --- ROUTAGE STRICT ---
+        if (currentUser && dbUsersList.includes(currentUser)) {
+            // Utilisateur Connecté
+            loginScreen.classList.remove('active');
+            appScreen.classList.add('active');
+            document.getElementById('user-display-name').textContent = currentUser;
+            adminBtn.style.display = (currentUser === "Étienne" || currentUser === "Etienne") ? 'block' : 'none';
+            
+            checkWeeklyReset(); 
+            startListeners();   
         } else {
-            adminBtn.style.display = 'none';
+            // Non connecté
+            appScreen.classList.remove('active');
+            loginScreen.classList.add('active');
         }
-
-        checkWeeklyReset(); 
-        startListeners();   
-    } else {
-        loginScreen.classList.add('active');
-        appScreen.classList.remove('active');
+    } catch (error) {
+        console.error("Erreur Fatale:", error);
+        dynamicUserGrid.innerHTML = `<p style="color:#ff6b6b;">Erreur de connexion à Firebase. Vérifie ta connexion.</p>`;
     }
 }
 
-// --- Connexion ---
+// --- LOGIQUE DE CONNEXION ---
 function showCodeInput(name) {
     pendingUser = name;
     codeLogin.classList.add('visible');
@@ -153,7 +148,6 @@ codeSubmit.addEventListener('click', async () => {
     currentUser = pendingUser;
     localStorage.setItem('cinqContreUnUser', currentUser);
     
-    // Sauvegarde l'IP pour l'auto-login futur
     const ip = await getPublicIp();
     if (ip) await updateDoc(userRef, { ips: arrayUnion(ip) });
 
@@ -162,23 +156,21 @@ codeSubmit.addEventListener('click', async () => {
     init();
 });
 
-document.getElementById('logout-btn').addEventListener('click', () => {
+logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('cinqContreUnUser');
     currentUser = null;
     init();
 });
 
-// --- Gestion du Profil (Avatar) ---
+// --- GESTION PROFIL (AVATAR) ---
 const profileModal = document.getElementById('profile-modal');
 userAvatar.addEventListener('click', () => profileModal.style.display = 'flex');
 document.getElementById('close-profile-btn').addEventListener('click', () => profileModal.style.display = 'none');
 
 document.getElementById('save-pic-btn').addEventListener('click', async () => {
     const url = document.getElementById('profile-pic-url').value.trim();
-    if (url) {
-        await updateDoc(doc(db, "users", currentUser), { photoUrl: url });
-        profileModal.style.display = 'none';
-    }
+    if (url) await updateDoc(doc(db, "users", currentUser), { photoUrl: url });
+    profileModal.style.display = 'none';
 });
 
 document.getElementById('remove-pic-btn').addEventListener('click', async () => {
@@ -187,7 +179,7 @@ document.getElementById('remove-pic-btn').addEventListener('click', async () => 
     profileModal.style.display = 'none';
 });
 
-// --- Action Clic (+1) & Étoiles ---
+// --- AJOUTER UN +1 & NOTER LA SESSION ---
 const btnMain = document.getElementById('main-btn');
 const brModal = document.getElementById('br-modal');
 let brEvent = null;
@@ -206,14 +198,11 @@ document.querySelectorAll('.stars').forEach(container => {
 btnMain.addEventListener('click', (e) => {
     if (!currentUser) return;
     brEvent = e;
-    
-    // Reset la modale
     document.getElementById('br-desc').value = '';
     document.querySelectorAll('.stars').forEach(c => {
         c.setAttribute('data-value', '0');
         c.querySelectorAll('span').forEach(s => s.style.color = 'var(--text-muted)');
     });
-
     brModal.style.display = 'flex';
 });
 
@@ -221,19 +210,15 @@ document.getElementById('cancel-br').addEventListener('click', () => brModal.sty
 
 document.getElementById('submit-br').addEventListener('click', async () => {
     brModal.style.display = 'none';
-    
-    // Animation + blague
     if (brEvent) createFloatingPlus(brEvent);
     document.getElementById('joke-text').textContent = jokes[Math.floor(Math.random() * jokes.length)];
 
-    // Récupérer les notes
     const desc = document.getElementById('br-desc').value.trim();
     const notes = {};
     document.querySelectorAll('.stars').forEach(c => {
         notes[c.getAttribute('data-category')] = parseInt(c.getAttribute('data-value')) || 0;
     });
 
-    // Sauvegarde en base
     await updateDoc(doc(db, "users", currentUser), { totalScore: increment(1), weeklyScore: increment(1) });
     await addDoc(collection(db, "br"), {
         user: currentUser,
@@ -253,7 +238,7 @@ function createFloatingPlus(e) {
     setTimeout(() => plus.remove(), 1000);
 }
 
-// --- Panneau ADMIN (Étienne) ---
+// --- ADMIN (ÉTIENNE) ---
 const adminModal = document.getElementById('admin-modal');
 adminBtn.addEventListener('click', () => {
     adminModal.style.display = 'flex';
@@ -261,7 +246,6 @@ adminBtn.addEventListener('click', () => {
 });
 document.getElementById('close-admin-btn').addEventListener('click', () => adminModal.style.display = 'none');
 
-// 1. Gérer l'objectif (Br max)
 document.getElementById('admin-save-target').addEventListener('click', async () => {
     const target = parseInt(document.getElementById('admin-target-input').value);
     if (target > 0) {
@@ -270,7 +254,6 @@ document.getElementById('admin-save-target').addEventListener('click', async () 
     }
 });
 
-// 2. Ajouter un utilisateur
 document.getElementById('admin-add-user').addEventListener('click', async () => {
     const name = document.getElementById('admin-new-name').value.trim();
     const code = document.getElementById('admin-new-code').value.trim();
@@ -279,11 +262,10 @@ document.getElementById('admin-add-user').addEventListener('click', async () => 
         alert(`${name} a été ajouté !`);
         document.getElementById('admin-new-name').value = '';
         document.getElementById('admin-new-code').value = '';
-        loadAdminUsers(); // Rafraîchir la liste
+        loadAdminUsers(); 
     }
 });
 
-// 3. Voir les codes
 async function loadAdminUsers() {
     const list = document.getElementById('admin-user-list');
     list.innerHTML = 'Chargement...';
@@ -295,9 +277,9 @@ async function loadAdminUsers() {
     });
 }
 
-// --- Temps réel (Écoutes) ---
+// --- TEMPS RÉEL (SCORES, FEED, COMMENTAIRES) ---
 function startListeners() {
-    // Écoute de la configuration système (Objectif)
+    // Écoute de l'objectif
     onSnapshot(doc(db, "system", "config"), (docSnap) => {
         if (docSnap.exists() && docSnap.data().brTarget) {
             document.getElementById('target-container').style.display = 'block';
@@ -305,7 +287,7 @@ function startListeners() {
         }
     });
 
-    // Utilisateurs & Scores
+    // Écoute des utilisateurs et scores
     onSnapshot(collection(db, "users"), (snapshot) => {
         let usersData = [];
         snapshot.forEach(d => {
@@ -329,7 +311,7 @@ function startListeners() {
         });
     });
 
-    // Feed des BR (avec les étoiles)
+    // Écoute du Feed des sessions
     onSnapshot(query(collection(db, "br"), orderBy("createdAt", "desc"), limit(15)), (snapshot) => {
         const feed = document.getElementById('br-feed-list');
         if (!feed) return;
@@ -346,11 +328,13 @@ function startListeners() {
                     <span>🎥 ${r.qualite}/5</span>
                 </div>
             `;
+            // Ouvrir les détails en cliquant
+            li.addEventListener('click', () => openBrDetail(brDoc.id, d));
             feed.appendChild(li);
         });
     });
 
-    // Historique
+    // Écoute de l'historique
     onSnapshot(collection(db, "history"), (snapshot) => {
         const hList = document.getElementById('history-list');
         hList.innerHTML = '';
@@ -363,7 +347,41 @@ function startListeners() {
     });
 }
 
-// --- Utils (Semaines) ---
+// --- LOGIQUE COMMENTAIRES ---
+function openBrDetail(brId, brData) {
+    currentBrId = brId;
+    brDetailText.innerHTML = `<strong>${brData.user}</strong> : ${brData.description}`;
+    brDetail.style.display = 'block';
+
+    const commentsQuery = query(collection(db, "br", brId, "comments"), orderBy("createdAt", "asc"));
+    onSnapshot(commentsQuery, (snapshot) => {
+        brCommentsList.innerHTML = '';
+        snapshot.forEach(commentDoc => {
+            const c = commentDoc.data();
+            const li = document.createElement('li');
+            li.innerHTML = `<span><strong>${c.user}</strong> : ${c.text}</span>`;
+            brCommentsList.appendChild(li);
+        });
+    });
+}
+
+brDetailClose.addEventListener('click', () => {
+    brDetail.style.display = 'none';
+    currentBrId = null;
+});
+
+brCommentSubmit.addEventListener('click', async () => {
+    if (!currentBrId || !currentUser) return;
+    const text = brCommentInput.value.trim();
+    if (!text) return;
+
+    await addDoc(collection(db, "br", currentBrId, "comments"), {
+        user: currentUser, text, createdAt: serverTimestamp()
+    });
+    brCommentInput.value = '';
+});
+
+// --- UTILS (SEMAINES & RESET) ---
 function getISOWeekString() {
     const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + 4 - (d.getDay()||7));
     const yearStart = new Date(d.getFullYear(),0,1);
@@ -393,5 +411,5 @@ async function checkWeeklyReset() {
     }
 }
 
-// Lancement
+// Démarrage de l'app !
 init();
