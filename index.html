@@ -21,8 +21,10 @@
 
         <div id="code-login" class="code-login">
             <p>Entre ton code secret pour continuer :</p>
-            <input type="password" id="access-code-input" placeholder="Code secret">
-            <button id="access-code-submit">Valider</button>
+            <div class="code-row">
+                <input type="password" id="access-code-input" placeholder="Code secret" autocomplete="one-time-code">
+                <button id="access-code-submit">Valider</button>
+            </div>
             <p id="access-code-error" class="error-msg"></p>
         </div>
     </section>
