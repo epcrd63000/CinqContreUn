@@ -32,13 +32,10 @@
     <section id="app-screen" class="screen">
         <header>
             <div class="user-info">
-                <div id="user-avatar" class="avatar" style="cursor: pointer;" title="Clique pour modifier ta photo"></div>
+                <div id="user-avatar" class="avatar"></div>
                 <h1>Salut <span id="user-display-name"></span> !</h1>
             </div>
-            <div class="header-buttons">
-                <button id="admin-btn" style="display: none;">⚙️ Admin</button>
-                <button id="logout-btn">Changer de compte</button>
-            </div>
+            <button id="logout-btn">Changer de compte</button>
         </header>
 
         <main>
@@ -71,140 +68,19 @@
                 <ul id="br-feed-list"></ul>
             </div>
 
-            <div class="br-modal-overlay" id="br-modal-overlay" style="display:none;">
-                <div class="br-modal" id="br-modal">
-                    <div class="br-modal-header">
-                        <h2>Détails de la br</h2>
-                        <button id="br-detail-close" class="close-btn">✕</button>
-                    </div>
-                    <div class="br-modal-content">
-                        <p id="br-detail-text" class="br-description"></p>
-                        <div class="br-ratings" id="br-ratings"></div>
-                        <div class="br-comments-section">
-                            <h3>Commentaires</h3>
-                            <ul id="br-comments-list"></ul>
-                            <div class="comment-input-row">
-                                <input type="text" id="br-comment-input" placeholder="Ajoute un commentaire...">
-                                <button id="br-comment-submit">Envoyer</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="br-detail" id="br-detail" style="display:none;">
+                <h2>Détails de la br</h2>
+                <p id="br-detail-text"></p>
+                <ul id="br-comments-list"></ul>
+                <input type="text" id="br-comment-input" placeholder="Ajoute un commentaire">
+                <button id="br-comment-submit">Envoyer</button>
+                <button id="br-detail-close">Fermer</button>
             </div>
 
             <div class="history">
                 <h2>📜 Palmarès (Semaines passées)</h2>
                 <ul id="history-list">
                     </ul>
-            </div>
-
-            <!-- MODAL: Photo de profil -->
-            <div class="modal-overlay" id="photo-modal-overlay" style="display:none;">
-                <div class="modal" id="photo-modal">
-                    <div class="modal-header">
-                        <h2>Ma photo de profil</h2>
-                        <button class="close-btn" onclick="closePhotoModal()">✕</button>
-                    </div>
-                    <div class="modal-content">
-                        <p>Colle une URL d'image ou télécharge une photo :</p>
-                        <input type="text" id="photo-url-input" placeholder="https://exemple.com/photo.jpg">
-                        <input type="file" id="photo-file-input" accept="image/*" style="margin-top: 10px;">
-                        <div class="modal-actions">
-                            <button id="apply-photo-btn">Appliquer</button>
-                            <button id="delete-photo-btn">Supprimer</button>
-                            <button onclick="closePhotoModal()">Annuler</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODAL: BR Notation -->
-            <div class="modal-overlay" id="rating-modal-overlay" style="display:none;">
-                <div class="modal" id="rating-modal">
-                    <div class="modal-header">
-                        <h2>Note ta BR</h2>
-                        <button class="close-btn" onclick="closeRatingModal()">✕</button>
-                    </div>
-                    <div class="modal-content">
-                        <input type="text" id="br-description-input" placeholder="Décris ta br (facultatif)...">
-                        
-                        <div class="rating-group">
-                            <label>Durée :</label>
-                            <div class="stars" data-category="duration"></div>
-                        </div>
-                        
-                        <div class="rating-group">
-                            <label>Plaisir :</label>
-                            <div class="stars" data-category="pleasure"></div>
-                        </div>
-                        
-                        <div class="rating-group">
-                            <label>Qualité vidéo / Partenaire :</label>
-                            <div class="stars" data-category="quality"></div>
-                        </div>
-
-                        <div class="modal-actions">
-                            <button id="submit-br-btn">Valider</button>
-                            <button onclick="closeRatingModal()">Annuler</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODAL: Admin Panel (Étienne) -->
-            <div class="modal-overlay" id="admin-modal-overlay" style="display:none;">
-                <div class="modal large-modal" id="admin-modal">
-                    <div class="modal-header">
-                        <h2>Panneau d'Administration</h2>
-                        <button class="close-btn" onclick="closeAdminModal()">✕</button>
-                    </div>
-                    <div class="modal-content admin-content" id="admin-content">
-                        <div class="admin-tabs">
-                            <button class="admin-tab-btn active" data-tab="users">Utilisateurs</button>
-                            <button class="admin-tab-btn" data-tab="codes">Codes d'accès</button>
-                            <button class="admin-tab-btn" data-tab="settings">Paramètres</button>
-                        </div>
-                        
-                        <div id="tab-users" class="admin-tab-content active">
-                            <h3>Gestion des utilisateurs</h3>
-                            <div class="user-list-admin" id="user-list-admin"></div>
-                            <button id="add-user-btn" style="margin-top: 10px;">+ Ajouter un profil</button>
-                        </div>
-
-                        <div id="tab-codes" class="admin-tab-content">
-                            <h3>Codes d'accès</h3>
-                            <div class="codes-list" id="codes-list"></div>
-                        </div>
-
-                        <div id="tab-settings" class="admin-tab-content">
-                            <h3>Paramètres</h3>
-                            <div class="setting-item">
-                                <label>BR par personne et par semaine :</label>
-                                <input type="number" id="br-limit-input" min="1" value="999">
-                                <button id="save-settings-btn">Enregistrer</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODAL: Ajouter un nouveau profil -->
-            <div class="modal-overlay" id="new-user-modal-overlay" style="display:none;">
-                <div class="modal" id="new-user-modal">
-                    <div class="modal-header">
-                        <h2>Créer un nouveau profil</h2>
-                        <button class="close-btn" onclick="closeNewUserModal()">✕</button>
-                    </div>
-                    <div class="modal-content">
-                        <input type="text" id="new-user-name-input" placeholder="Nom du profil">
-                        <input type="text" id="new-user-code-input" placeholder="Code d'accès" value="">
-                        <button id="generate-code-btn">Générer un code</button>
-                        <div class="modal-actions">
-                            <button id="create-user-btn">Créer</button>
-                            <button onclick="closeNewUserModal()">Annuler</button>
-                        </div>
-                    </div>
-                </div>
             </div>
         </main>
     </section>

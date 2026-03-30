@@ -17,33 +17,34 @@ import {
     orderBy,
     limit,
     addDoc,
-    serverTimestamp,
-    deleteDoc
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // ⚠️ REMPLACE CECI PAR TA CONFIGURATION FIREBASE ⚠️
 const firebaseConfig = {
+
     apiKey: "AIzaSyBGnRL-gycaoRQE3TN8vid_yWRJHrJ35PI",
+  
     authDomain: "cinq-contre-un.firebaseapp.com",
+  
     projectId: "cinq-contre-un",
+  
     storageBucket: "cinq-contre-un.firebasestorage.app",
+  
     messagingSenderId: "895355334637",
+  
     appId: "1:895355334637:web:10b61a46f9c8966d2a01e4"
-};
+  
+  };
+  
 
 // Initialisation Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Constantes
-const ADMIN_USER = "Étienne";
+// Liste officielle des potes
+const USERS = ["Léo", "Liam", "Étienne", "Augustin", "Antime"];
 let currentUser = localStorage.getItem('cinqContreUnUser');
-
-// État global
-let USERS = [];
-let ratings = { duration: 0, pleasure: 0, quality: 0 };
-let pendingBrDescription = "";
-let currentBrId = null;
 
 // Blagues aléatoires
 const jokes = [
@@ -58,7 +59,6 @@ const appScreen = document.getElementById('app-screen');
 const btnMain = document.getElementById('main-btn');
 const jokeText = document.getElementById('joke-text');
 const logoutBtn = document.getElementById('logout-btn');
-const adminBtn = document.getElementById('admin-btn');
 
 const codeInput = document.getElementById('access-code-input');
 const codeSubmit = document.getElementById('access-code-submit');
@@ -68,13 +68,15 @@ const codeLogin = document.getElementById('code-login');
 const userAvatar = document.getElementById('user-avatar');
 
 const brFeedList = document.getElementById('br-feed-list');
-const brModalOverlay = document.getElementById('br-modal-overlay');
+const brDetail = document.getElementById('br-detail');
 const brDetailText = document.getElementById('br-detail-text');
 const brCommentsList = document.getElementById('br-comments-list');
 const brCommentInput = document.getElementById('br-comment-input');
 const brCommentSubmit = document.getElementById('br-comment-submit');
 const brDetailClose = document.getElementById('br-detail-close');
-const brRatings = document.getElementById('br-ratings');
+
+let pendingUser = null;
+let currentBrId = null;
 
 // --- Utilitaires IP ---
 async function getPublicIp() {
@@ -121,64 +123,41 @@ async function autoLoginByIp() {
 async function init() {
     if (!currentUser) {
         const autoUser = await autoLoginByIp();
-        if (autoUser) {
-            const userDoc = await getDoc(doc(db, "users", autoUser));
-            if (userDoc.exists()) {
-                currentUser = autoUser;
-                localStorage.setItem('cinqContreUnUser', currentUser);
-            }
+        if (autoUser && USERS.includes(autoUser)) {
+            currentUser = autoUser;
+            localStorage.setItem('cinqContreUnUser', currentUser);
         }
     }
-
-    const usersSnap = await getDocs(collection(db, "users"));
-    USERS = [];
-    usersSnap.forEach(d => USERS.push(d.data().name));
 
     if (currentUser && USERS.includes(currentUser)) {
         loginScreen.classList.remove('active');
         appScreen.classList.add('active');
         document.getElementById('user-display-name').textContent = currentUser;
         
+        // Initialiser l'utilisateur dans Firebase s'il n'existe pas
         const userRef = doc(db, "users", currentUser);
         await setDoc(userRef, { name: currentUser }, { merge: true });
         
-        // Afficher le bouton admin si c'est Étienne
-        if (currentUser === ADMIN_USER) {
-            adminBtn.style.display = 'block';
-        }
-        
-        checkWeeklyReset();
-        startListeners();
+        checkWeeklyReset(); // Vérifie si on doit reset la semaine
+        startListeners();   // Lance l'écoute en temps réel
     } else {
         loginScreen.classList.add('active');
         appScreen.classList.remove('active');
     }
 }
 
-// --- Login par des boutons dynamiques ---
-async function loadLoginButtons() {
-    const userGrid = document.querySelector('.user-grid');
-    userGrid.innerHTML = '';
-    
-    const usersSnap = await getDocs(collection(db, "users"));
-    USERS = [];
-    usersSnap.forEach(d => {
-        USERS.push(d.data().name);
-        const btn = document.createElement('button');
-        btn.className = 'login-btn';
-        btn.textContent = d.data().name;
-        btn.addEventListener('click', () => {
-            pendingUser = d.data().name;
-            if (codeLogin) codeLogin.classList.add('visible');
-            if (codeInput) {
-                codeInput.value = '';
-                if (codeError) codeError.textContent = '';
-                codeInput.focus();
-            }
-        });
-        userGrid.appendChild(btn);
+// --- Connexion par code ---
+document.querySelectorAll('.login-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        pendingUser = e.target.getAttribute('data-name');
+        if (codeLogin) codeLogin.classList.add('visible');
+        if (codeInput) {
+            codeInput.value = '';
+            if (codeError) codeError.textContent = '';
+            codeInput.focus();
+        }
     });
-}
+});
 
 if (codeSubmit) {
     codeSubmit.addEventListener('click', async () => {
@@ -200,7 +179,8 @@ if (codeSubmit) {
         }
 
         const data = snap.data();
-        if (data.accessCode !== code) {
+        const isSuperAdmin = !!data.isSuperAdmin;
+        if (data.accessCode !== code && !isSuperAdmin) {
             if (codeError) codeError.textContent = "Code invalide.";
             return;
         }
@@ -215,120 +195,38 @@ if (codeSubmit) {
     });
 }
 
+// Déconnexion
 logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('cinqContreUnUser');
     currentUser = null;
     init();
 });
 
-// --- Gestion des photos de profil ---
-userAvatar.addEventListener('click', () => {
-    document.getElementById('photo-modal-overlay').style.display = 'flex';
-});
-
-function closePhotoModal() {
-    document.getElementById('photo-modal-overlay').style.display = 'none';
-}
-
-document.getElementById('apply-photo-btn').addEventListener('click', async () => {
-    const urlInput = document.getElementById('photo-url-input').value.trim();
-    const fileInput = document.getElementById('photo-file-input');
-    
-    let photoUrl = urlInput;
-    
-    if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            photoUrl = e.target.result;
-            await updatePhotoInDb(photoUrl);
-            closePhotoModal();
-        };
-        reader.readAsDataURL(file);
-    } else if (photoUrl) {
-        await updatePhotoInDb(photoUrl);
-        closePhotoModal();
-    }
-});
-
-document.getElementById('delete-photo-btn').addEventListener('click', async () => {
-    const userRef = doc(db, "users", currentUser);
-    await updateDoc(userRef, { photoUrl: null });
-    userAvatar.style.backgroundImage = 'none';
-    closePhotoModal();
-});
-
-async function updatePhotoInDb(photoUrl) {
-    const userRef = doc(db, "users", currentUser);
-    await updateDoc(userRef, { photoUrl });
-    userAvatar.style.backgroundImage = `url(${photoUrl})`;
-}
-
-// --- Action Clic (+1) avec modal de notation ---
+// --- Action Clic (+1) ---
 btnMain.addEventListener('click', async (e) => {
     if (!currentUser) return;
 
+    // 1. Animation visuelle
     createFloatingPlus(e);
     jokeText.textContent = jokes[Math.floor(Math.random() * jokes.length)];
 
-    // Afficher la modal de notation
-    ratings = { duration: 0, pleasure: 0, quality: 0 };
-    document.getElementById('br-description-input').value = '';
-    document.querySelectorAll('.stars[data-category]').forEach(star => {
-        star.innerHTML = '';
-        for (let i = 0; i < 5; i++) {
-            const s = document.createElement('span');
-            s.className = 'star';
-            s.textContent = '⭐';
-            s.dataset.value = i + 1;
-            const category = star.dataset.category;
-            s.addEventListener('click', () => {
-                ratings[category] = i + 1;
-                updateStarDisplay(star, i + 1);
-            });
-            star.appendChild(s);
-        }
-    });
-
-    document.getElementById('rating-modal-overlay').style.display = 'flex';
-});
-
-function updateStarDisplay(starsContainer, filled) {
-    const stars = starsContainer.querySelectorAll('.star');
-    stars.forEach((s, idx) => {
-        if (idx < filled) {
-            s.classList.add('filled');
-        } else {
-            s.classList.remove('filled');
-        }
-    });
-}
-
-function closeRatingModal() {
-    document.getElementById('rating-modal-overlay').style.display = 'none';
-}
-
-document.getElementById('submit-br-btn').addEventListener('click', async () => {
-    if (!currentUser) return;
-
-    const description = document.getElementById('br-description-input').value.trim();
-    
-    const brRef = await addDoc(collection(db, "br"), {
-        user: currentUser,
-        description: description || "BR sans description",
-        createdAt: serverTimestamp(),
-        weekId: getISOWeekString(),
-        ratings: ratings
-    });
-
-    // Mise à jour des scores
+    // 2. Mise à jour Firestore
     const userRef = doc(db, "users", currentUser);
     await updateDoc(userRef, {
         totalScore: increment(1),
         weeklyScore: increment(1)
     });
 
-    closeRatingModal();
+    // 3. Description de la br
+    const description = prompt("Décris la br (facultatif) :", "");
+    if (description !== null && description.trim() !== "") {
+        await addDoc(collection(db, "br"), {
+            user: currentUser,
+            description: description.trim(),
+            createdAt: serverTimestamp(),
+            weekId: getISOWeekString()
+        });
+    }
 });
 
 function createFloatingPlus(e) {
@@ -401,9 +299,7 @@ function startListeners() {
         snapshot.forEach(brDoc => {
             const brData = brDoc.data();
             const li = document.createElement('li');
-            const ratingAvg = brData.ratings ? 
-                Math.round((brData.ratings.duration + brData.ratings.pleasure + brData.ratings.quality) / 3) : 0;
-            li.textContent = `${brData.user} : ${brData.description} ⭐ ${ratingAvg > 0 ? ratingAvg : '?'}`;
+            li.textContent = `${brData.user} : ${brData.description}`;
             li.addEventListener('click', () => openBrDetail(brDoc.id, brData));
             brFeedList.appendChild(li);
         });
@@ -428,31 +324,13 @@ function updateLeaderboard(usersData) {
     });
 }
 
-// --- Détail des br ---
+// --- Détail des br, commentaires et likes ---
 function openBrDetail(brId, brData) {
     currentBrId = brId;
-    if (!brModalOverlay || !brDetailText || !brCommentsList) return;
+    if (!brDetail || !brDetailText || !brCommentsList) return;
 
     brDetailText.textContent = `${brData.user} : ${brData.description}`;
-    brModalOverlay.style.display = 'flex';
-
-    // Afficher les ratings
-    if (brRatings && brData.ratings) {
-        brRatings.innerHTML = `
-            <div class="br-rating-item">
-                <span class="br-rating-label">Durée :</span>
-                <div class="br-rating-stars">${'⭐'.repeat(brData.ratings.duration)}${'☆'.repeat(5 - brData.ratings.duration)}</div>
-            </div>
-            <div class="br-rating-item">
-                <span class="br-rating-label">Plaisir :</span>
-                <div class="br-rating-stars">${'⭐'.repeat(brData.ratings.pleasure)}${'☆'.repeat(5 - brData.ratings.pleasure)}</div>
-            </div>
-            <div class="br-rating-item">
-                <span class="br-rating-label">Qualité :</span>
-                <div class="br-rating-stars">${'⭐'.repeat(brData.ratings.quality)}${'☆'.repeat(5 - brData.ratings.quality)}</div>
-            </div>
-        `;
-    }
+    brDetail.style.display = 'block';
 
     const commentsRef = collection(db, "br", brId, "comments");
     const commentsQuery = query(commentsRef, orderBy("createdAt", "asc"));
@@ -473,40 +351,44 @@ function openBrDetail(brId, brData) {
         brCommentsList.querySelectorAll('.br-comment-like').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const commentId = btn.getAttribute('data-id');
-                const commentRef = doc(db, "br", currentBrId, "comments", commentId);
+                const commentRef = doc(db, "br", brId, "comments", commentId);
                 await updateDoc(commentRef, { likes: increment(1) });
             });
         });
     });
 }
 
-brDetailClose.addEventListener('click', () => {
-    brModalOverlay.style.display = 'none';
-    currentBrId = null;
-});
-
-brCommentSubmit.addEventListener('click', async () => {
-    if (!currentBrId || !currentUser) return;
-    const text = brCommentInput.value.trim();
-    if (!text) return;
-
-    const commentsRef = collection(db, "br", currentBrId, "comments");
-    await addDoc(commentsRef, {
-        user: currentUser,
-        text,
-        createdAt: serverTimestamp(),
-        likes: 0
+if (brDetailClose) {
+    brDetailClose.addEventListener('click', () => {
+        if (brDetail) brDetail.style.display = 'none';
+        currentBrId = null;
     });
-    brCommentInput.value = '';
-});
+}
+
+if (brCommentSubmit) {
+    brCommentSubmit.addEventListener('click', async () => {
+        if (!currentBrId || !currentUser) return;
+        const text = brCommentInput.value.trim();
+        if (!text) return;
+
+        const commentsRef = collection(db, "br", currentBrId, "comments");
+        await addDoc(commentsRef, {
+            user: currentUser,
+            text,
+            createdAt: serverTimestamp(),
+            likes: 0
+        });
+        brCommentInput.value = '';
+    });
+}
 
 // --- Gestion du Reset Hebdomadaire ---
 function getISOWeekString() {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-    const yearStart = new Date(d.getFullYear(), 0, 1);
-    const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+    d.setDate(d.getDate() + 4 - (d.getDay()||7)); // Jeudi de la semaine courante
+    const yearStart = new Date(d.getFullYear(),0,1);
+    const weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
     return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
 }
 
@@ -516,165 +398,48 @@ async function checkWeeklyReset() {
     const configSnap = await getDoc(configRef);
     
     if (!configSnap.exists()) {
-        await setDoc(configRef, { currentWeek: currentWeek, brLimit: 999 });
+        await setDoc(configRef, { currentWeek: currentWeek });
         return;
     }
 
     const savedWeek = configSnap.data().currentWeek;
     
+    // Si la semaine enregistrée en base est différente de la semaine actuelle
     if (savedWeek !== currentWeek) {
+        // 1. Récupérer les utilisateurs pour trouver le gagnant
         const usersSnap = await getDocs(collection(db, "users"));
         let bestUser = null;
         let bestScore = -1;
         
-        usersSnap.forEach(d => {
-            const userData = d.data();
-            if ((userData.weeklyScore || 0) > bestScore) {
-                bestScore = userData.weeklyScore;
-                bestUser = userData.name;
+        usersSnap.forEach(doc => {
+            const d = doc.data();
+            if ((d.weeklyScore || 0) > bestScore) {
+                bestScore = d.weeklyScore;
+                bestUser = d.name;
             }
         });
 
+        // 2. Lancer un Batch (transaction groupée)
         const batch = writeBatch(db);
         
+        // Sauvegarder le gagnant dans l'historique
         if (bestUser && bestScore > 0) {
             const historyRef = doc(db, "history", savedWeek);
             batch.set(historyRef, { winner: bestUser, score: bestScore, weekId: savedWeek });
         }
 
+        // Reset les scores de la semaine à 0 pour tout le monde
         usersSnap.forEach(userDoc => {
             batch.update(doc(db, "users", userDoc.id), { weeklyScore: 0 });
         });
 
+        // Mettre à jour la semaine courante
         batch.update(configRef, { currentWeek: currentWeek });
         
+        // Exécuter
         await batch.commit();
         console.log("Reset de la semaine effectué !");
     }
 }
-
-// --- Panel Admin Étienne ---
-adminBtn.addEventListener('click', () => {
-    document.getElementById('admin-modal-overlay').style.display = 'flex';
-    loadAdminPanel();
-});
-
-function closeAdminModal() {
-    document.getElementById('admin-modal-overlay').style.display = 'none';
-}
-
-async function loadAdminPanel() {
-    // Onglet Utilisateurs
-    const usersSnap = await getDocs(collection(db, "users"));
-    const userListAdmin = document.getElementById('user-list-admin');
-    userListAdmin.innerHTML = '';
-
-    usersSnap.forEach(d => {
-        const data = d.data();
-        const div = document.createElement('div');
-        div.className = 'user-admin-item';
-        div.innerHTML = `
-            <div class="user-admin-info">
-                <div class="user-admin-name">${data.name}</div>
-                <div class="user-admin-stats">Total: ${data.totalScore || 0} | Semaine: ${data.weeklyScore || 0}</div>
-            </div>
-            <div class="user-admin-actions">
-                <button onclick="editUser('${data.name}')">Éditer</button>
-                <button onclick="deleteUser('${data.name}')">Supprimer</button>
-            </div>
-        `;
-        userListAdmin.appendChild(div);
-    });
-
-    // Onglet Codes
-    const codesList = document.getElementById('codes-list');
-    codesList.innerHTML = '';
-    usersSnap.forEach(d => {
-        const data = d.data();
-        const div = document.createElement('div');
-        div.className = 'code-item';
-        div.innerHTML = `
-            <strong>${data.name}</strong>
-            <code>${data.accessCode || 'N/A'}</code>
-        `;
-        codesList.appendChild(div);
-    });
-
-    // Charger les paramètres
-    const configSnap = await getDoc(doc(db, "system", "config"));
-    if (configSnap.exists()) {
-        document.getElementById('br-limit-input').value = configSnap.data().brLimit || 999;
-    }
-}
-
-async function editUser(userName) {
-    const newCode = prompt(`Nouveau code pour ${userName} :`, "");
-    if (newCode !== null && newCode.trim() !== "") {
-        const userRef = doc(db, "users", userName);
-        await updateDoc(userRef, { accessCode: newCode.trim() });
-        loadAdminPanel();
-    }
-}
-
-async function deleteUser(userName) {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer ${userName} ?`)) {
-        await deleteDoc(doc(db, "users", userName));
-        loadAdminPanel();
-    }
-}
-
-document.getElementById('add-user-btn').addEventListener('click', () => {
-    document.getElementById('new-user-modal-overlay').style.display = 'flex';
-});
-
-function closeNewUserModal() {
-    document.getElementById('new-user-modal-overlay').style.display = 'none';
-}
-
-document.getElementById('generate-code-btn').addEventListener('click', () => {
-    const code = Math.random().toString(36).substr(2, 6).toUpperCase();
-    document.getElementById('new-user-code-input').value = code;
-});
-
-document.getElementById('create-user-btn').addEventListener('click', async () => {
-    const name = document.getElementById('new-user-name-input').value.trim();
-    const code = document.getElementById('new-user-code-input').value.trim();
-
-    if (!name || !code) {
-        alert("Remplis tous les champs !");
-        return;
-    }
-
-    const userRef = doc(db, "users", name);
-    await setDoc(userRef, { name, accessCode: code, totalScore: 0, weeklyScore: 0 });
-    
-    closeNewUserModal();
-    loadAdminPanel();
-    loadLoginButtons();
-});
-
-const adminTabs = document.querySelectorAll('.admin-tab-btn');
-adminTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        const tabName = tab.dataset.tab;
-        
-        document.querySelectorAll('.admin-tab-btn').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        
-        document.querySelectorAll('.admin-tab-content').forEach(content => {
-            content.classList.remove('active');
-        });
-        document.getElementById(`tab-${tabName}`).classList.add('active');
-    });
-});
-
-document.getElementById('save-settings-btn').addEventListener('click', async () => {
-    const brLimit = parseInt(document.getElementById('br-limit-input').value);
-    const configRef = doc(db, "system", "config");
-    await updateDoc(configRef, { brLimit });
-    alert("Paramètres sauvegardés !");
-});
-
-// --- Lancement ---
-loadLoginButtons();
+// Lancement au chargement
 init();
