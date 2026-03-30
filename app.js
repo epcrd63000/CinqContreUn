@@ -121,17 +121,6 @@ async function autoLoginByIp() {
 
 // --- Logique d'initialisation ---
 async function init() {
-    // Génère les champs manquants une seule fois (pour le dev).
-    // Utile si tu as importé des users sans `accessCode` / `isSuperAdmin` / `ips`.
-    if (!localStorage.getItem('cinqContreUnNormalizedUsers')) {
-        try {
-            await normalizeUsers();
-            localStorage.setItem('cinqContreUnNormalizedUsers', '1');
-        } catch (e) {
-            console.error("normalizeUsers() a échoué", e);
-        }
-    }
-
     if (!currentUser) {
         const autoUser = await autoLoginByIp();
         if (autoUser && USERS.includes(autoUser)) {
@@ -451,37 +440,6 @@ async function checkWeeklyReset() {
         await batch.commit();
         console.log("Reset de la semaine effectué !");
     }
-}
-async function normalizeUsers() {
-    const usersSnap = await getDocs(collection(db, "users"));
-
-    for (const userDoc of usersSnap.docs) {
-        const data = userDoc.data();
-
-        // Valeurs par défaut
-        const update = {};
-
-        if (data.accessCode === undefined) {
-            // génère un code simple type ABCD-1234
-            const prefix = (data.name || userDoc.id || 'USER').substring(0, 3).toUpperCase();
-            const rand = Math.floor(1000 + Math.random() * 9000);
-            update.accessCode = `${prefix}-${rand}`;
-        }
-
-        if (data.isSuperAdmin === undefined) {
-            update.isSuperAdmin = false; // tu pourras mettre true à la main pour Étienne
-        }
-
-        if (!Array.isArray(data.ips)) {
-            update.ips = [];
-        }
-
-        if (Object.keys(update).length > 0) {
-            await updateDoc(doc(db, "users", userDoc.id), update);
-        }
-    }
-
-    console.log("Normalisation users terminée");
 }
 // Lancement au chargement
 init();
