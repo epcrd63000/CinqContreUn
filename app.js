@@ -36,6 +36,7 @@ const db = getFirestore(app);
 const ADMIN_USER = "Étienne";
 let currentUser = localStorage.getItem('cinqContreUnUser');
 let USERS = [];
+let userPhotoByUser = {}; // pour afficher avatars dans commentaire
 let ratings = { duration: 0, pleasure: 0, quality: 0 };
 let currentBrId = null;
 
@@ -343,6 +344,7 @@ function startListeners() {
                 weekly: data.weeklyScore || 0,
                 photoUrl: data.photoUrl || null
             });
+            userPhotoByUser[data.name] = data.photoUrl || null;
             if (data.name === currentUser) {
                 document.getElementById('total-score').textContent = data.totalScore || 0;
                 document.getElementById('weekly-score').textContent = data.weeklyScore || 0;
@@ -404,44 +406,126 @@ function openBrDetail(brId, brData) {
     brDetailText.textContent = `${brData.user} : ${brData.description}`;
     brModalOverlay.style.display = 'flex';
     if (brRatings && brData.ratings) {
+        const durationEmoji = '⏱️';
+        const pleasureEmoji = '💧';
+        const qualityEmoji = '📷';
+        const emptyEmoji = '⚪';
+
+        const renderStars = (value, emoji) => {
+            return `${emoji.repeat(value)}${emptyEmoji.repeat(5 - value)}`;
+        };
+
         brRatings.innerHTML = `
             <div class="br-rating-item">
-                <span class="br-rating-label">Durée :</span>
-                <div class="br-rating-stars">${'⭐'.repeat(brData.ratings.duration)}${'☆'.repeat(5 - brData.ratings.duration)}</div>
+                <span class="br-rating-label">⏱️ Durée :</span>
+                <div class="br-rating-stars">${renderStars(brData.ratings.duration, durationEmoji)}</div>
             </div>
             <div class="br-rating-item">
-                <span class="br-rating-label">Plaisir :</span>
-                <div class="br-rating-stars">${'⭐'.repeat(brData.ratings.pleasure)}${'☆'.repeat(5 - brData.ratings.pleasure)}</div>
+                <span class="br-rating-label">💧 Plaisir :</span>
+                <div class="br-rating-stars">${renderStars(brData.ratings.pleasure, pleasureEmoji)}</div>
             </div>
             <div class="br-rating-item">
-                <span class="br-rating-label">Qualité :</span>
-                <div class="br-rating-stars">${'⭐'.repeat(brData.ratings.quality)}${'☆'.repeat(5 - brData.ratings.quality)}</div>
+                <span class="br-rating-label">📷 Qualité :</span>
+                <div class="br-rating-stars">${renderStars(brData.ratings.quality, qualityEmoji)}</div>
             </div>
         `;
     }
     const commentsRef = collection(db, "br", brId, "comments");
     const commentsQuery = query(commentsRef, orderBy("createdAt", "asc"));
-    onSnapshot(commentsQuery, (snapshot) => {
-        brCommentsList.innerHTML = '';
-        snapshot.forEach(commentDoc => {
-            const c = commentDoc.data();
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span><strong>${c.user}</strong> : ${c.text}</span>
-                <span>
-                    <button class="br-comment-like" data-id="${commentDoc.id}">♥ ${c.likes || 0}</button>
-                </span>
-            `;
-            brCommentsList.appendChild(li);
+
+    const buildCommentNode = (commentDoc) => {
+        const c = commentDoc.data();
+        const li = document.createElement('li');
+        li.className = 'br-comment-item';
+
+        const avatarUrl = userPhotoByUser[c.user] || '';
+
+        li.innerHTML = `
+            <div class="br-comment-header">
+                <div class="br-comment-avatar" style="background-image: url('${avatarUrl}')"></div>
+                <div class="br-comment-meta">
+                    <strong>${c.user}</strong>
+                    <span>${new Date(c.createdAt?.toDate ? c.createdAt.toDate() : Date.now()).toLocaleString()}</span>
+                </div>
+            </div>
+            <p class="br-comment-text">${c.text}</p>
+            <div class="br-comment-actions">
+                <button class="br-comment-like" data-id="${commentDoc.id}">♥ ${c.likes || 0}</button>
+                <button class="br-comment-reply" data-id="${commentDoc.id}">Répondre</button>
+                ${currentUser === ADMIN_USER ? `<button class="br-comment-delete" data-id="${commentDoc.id}">Supprimer</button>` : ''}
+            </div>
+            <ul class="br-subcomments-list" data-parent="${commentDoc.id}"></ul>
+        `;
+
+        const likeBtn = li.querySelector('.br-comment-like');
+        likeBtn.addEventListener('click', async () => {
+            const commentRef = doc(db, "br", currentBrId, "comments", commentDoc.id);
+            await updateDoc(commentRef, { likes: increment(1) });
         });
-        brCommentsList.querySelectorAll('.br-comment-like').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const commentId = btn.getAttribute('data-id');
-                const commentRef = doc(db, "br", currentBrId, "comments", commentId);
-                await updateDoc(commentRef, { likes: increment(1) });
+
+        const replyBtn = li.querySelector('.br-comment-reply');
+        replyBtn.addEventListener('click', async () => {
+            const replyText = prompt('Ton commentaire en réponse :');
+            if (!replyText || !replyText.trim()) return;
+            await addDoc(commentsRef, {
+                user: currentUser,
+                text: replyText.trim(),
+                parentId: commentDoc.id,
+                createdAt: serverTimestamp(),
+                likes: 0
             });
         });
+
+        if (currentUser === ADMIN_USER) {
+            const deleteBtn = li.querySelector('.br-comment-delete');
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm('Supprimer ce commentaire (et ses réponses) ?')) return;
+                await deleteCommentAndReplies(commentDoc.id);
+            });
+        }
+
+        return li;
+    };
+
+    const renderComments = (comments) => {
+        const rootComments = comments.filter(c => !c.data().parentId);
+        const replyComments = comments.filter(c => c.data().parentId);
+
+        brCommentsList.innerHTML = '';
+
+        const insertCommentWithReplies = (commentDoc) => {
+            const node = buildCommentNode(commentDoc);
+            const subList = node.querySelector('.br-subcomments-list');
+            const childComments = replyComments.filter(x => x.data().parentId === commentDoc.id);
+            childComments.forEach(childDoc => {
+                const childNode = insertCommentWithReplies(childDoc);
+                subList.appendChild(childNode);
+            });
+            return node;
+        };
+
+        rootComments.forEach(rootDoc => {
+            const rootNode = insertCommentWithReplies(rootDoc);
+            brCommentsList.appendChild(rootNode);
+        });
+    };
+
+    onSnapshot(commentsQuery, (snapshot) => {
+        const comments = snapshot.docs;
+        renderComments(comments);
     });
+}
+
+async function deleteCommentAndReplies(commentId) {
+    if (!currentBrId) return;
+    const commentsRef = collection(db, "br", currentBrId, "comments");
+    const commentDocRef = doc(db, "br", currentBrId, "comments", commentId);
+    const childQuery = query(commentsRef, where("parentId", "==", commentId));
+    const childSnap = await getDocs(childQuery);
+    for (const child of childSnap.docs) {
+        await deleteCommentAndReplies(child.id);
+    }
+    await deleteDoc(commentDocRef);
 }
 
 brDetailClose.addEventListener('click', () => {
@@ -457,6 +541,7 @@ brCommentSubmit.addEventListener('click', async () => {
     await addDoc(commentsRef, {
         user: currentUser,
         text,
+        parentId: null,
         createdAt: serverTimestamp(),
         likes: 0
     });
