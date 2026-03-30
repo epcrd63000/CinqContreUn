@@ -237,7 +237,15 @@ if (document.getElementById('apply-photo-btn')) {
 
 async function updatePhotoInDb(photoUrl) {
     const userRef = doc(db, "users", currentUser);
-    await updateDoc(userRef, { photoUrl });
+    try {
+        await updateDoc(userRef, { photoUrl });
+    } catch (e) {
+        console.error('Erreur update photo Firestore', e);
+    }
+    userPhotoByUser[currentUser] = photoUrl;
+    if (typeof window !== 'undefined' && currentUser) {
+        localStorage.setItem(`cinqContreUnPhoto_${currentUser}`, photoUrl);
+    }
     userAvatar.style.backgroundImage = `url(${photoUrl})`;
 }
 
@@ -349,7 +357,12 @@ function startListeners() {
                 document.getElementById('total-score').textContent = data.totalScore || 0;
                 document.getElementById('weekly-score').textContent = data.weeklyScore || 0;
                 if (userAvatar) {
-                    userAvatar.style.backgroundImage = data.photoUrl ? `url(${data.photoUrl})` : 'none';
+                    const localPhoto = localStorage.getItem(`cinqContreUnPhoto_${currentUser}`);
+                    const finalPhoto = data.photoUrl || localPhoto || null;
+                    userAvatar.style.backgroundImage = finalPhoto ? `url(${finalPhoto})` : 'none';
+                    if (finalPhoto) {
+                        userPhotoByUser[currentUser] = finalPhoto;
+                    }
                 }
             }
         });
