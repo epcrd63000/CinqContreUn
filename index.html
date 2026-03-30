@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CinqContreUn</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <section id="login-screen" class="screen active">
+        <h1>CinqContreUn 🖐️</h1>
+        <p>Qui es-tu ?</p>
+        <div class="user-grid">
+            <button class="login-btn" data-name="Léo">Léo</button>
+            <button class="login-btn" data-name="Liam">Liam</button>
+            <button class="login-btn" data-name="Étienne">Étienne</button>
+            <button class="login-btn" data-name="Augustin">Augustin</button>
+            <button class="login-btn" data-name="Antime">Antime</button>
+        </div>
+    </section>
+
+    <section id="app-screen" class="screen">
+        <header>
+            <h1>Salut <span id="user-display-name"></span> !</h1>
+            <button id="logout-btn">Changer de compte</button>
+        </header>
+
+        <main>
+            <div class="score-container">
+                <div class="score-box">
+                    <span>Score Total</span>
+                    <strong id="total-score">0</strong>
+                </div>
+                <div class="score-box highlight">
+                    <span>Cette semaine</span>
+                    <strong id="weekly-score">0</strong>
+                </div>
+            </div>
+
+            <div class="button-container">
+                <button id="main-btn">
+                    <span class="btn-text">+1</span>
+                </button>
+                <p id="joke-text">Prêt à spammer ?</p>
+            </div>
+
+            <div class="leaderboard">
+                <h2>🏆 Classement de la semaine</h2>
+                <ul id="leaderboard-list">
+                    </ul>
+            </div>
+
+            <div class="history">
+                <h2>📜 Palmarès (Semaines passées)</h2>
+                <ul id="history-list">
+                    </ul>
+            </div>
+        </main>
+    </section>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
