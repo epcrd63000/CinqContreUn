@@ -240,13 +240,22 @@ li:last-child { border-bottom: none; }
 }
 
 .star {
-    font-size: 2rem; cursor: pointer; color: #333;
-    transition: color 0.2s;
+    font-size: 2rem; cursor: pointer; color: #555;
+    transition: all 0.3s ease;
+    transform: scale(1);
 }
 
-.star:hover { color: var(--gold); }
+.star:hover {
+    color: var(--gold);
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
+}
 
-.star.filled { color: var(--gold); }
+.star.filled {
+    color: var(--gold);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.4));
+}
 
 /* --- Admin Panel --- */
 .admin-content { padding: 0; }

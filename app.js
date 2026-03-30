@@ -205,6 +205,7 @@ userAvatar.addEventListener('click', () => {
 function closePhotoModal() {
     document.getElementById('photo-modal-overlay').style.display = 'none';
 }
+window.closePhotoModal = closePhotoModal;
 
 if (document.getElementById('apply-photo-btn')) {
     document.getElementById('apply-photo-btn').addEventListener('click', async () => {
@@ -247,15 +248,26 @@ btnMain.addEventListener('click', async (e) => {
     document.getElementById('br-description-input').value = '';
     document.querySelectorAll('.stars[data-category]').forEach(star => {
         star.innerHTML = '';
+        const category = star.dataset.category;
+        let emoji = '⭐';
+        if (category === 'duration') emoji = '⏱️';
+        else if (category === 'pleasure') emoji = '💧';
+        else if (category === 'quality') emoji = '📷';
+        
         for (let i = 0; i < 5; i++) {
             const s = document.createElement('span');
             s.className = 'star';
-            s.textContent = '⭐';
+            s.textContent = emoji;
             s.dataset.value = i + 1;
-            const category = star.dataset.category;
             s.addEventListener('click', () => {
                 ratings[category] = i + 1;
                 updateStarDisplay(star, i + 1);
+            });
+            s.addEventListener('mouseenter', () => {
+                updateStarDisplay(star, i + 1);
+            });
+            s.addEventListener('mouseleave', () => {
+                updateStarDisplay(star, ratings[category]);
             });
             star.appendChild(s);
         }
@@ -265,15 +277,34 @@ btnMain.addEventListener('click', async (e) => {
 
 function updateStarDisplay(starsContainer, filled) {
     const stars = starsContainer.querySelectorAll('.star');
+    const category = starsContainer.dataset.category;
+    let filledEmoji = '⭐', emptyEmoji = '☆';
+    if (category === 'duration') {
+        filledEmoji = '⏱️';
+        emptyEmoji = '⏰';
+    } else if (category === 'pleasure') {
+        filledEmoji = '💧';
+        emptyEmoji = '💧';
+    } else if (category === 'quality') {
+        filledEmoji = '📷';
+        emptyEmoji = '📷';
+    }
+    
     stars.forEach((s, idx) => {
-        if (idx < filled) s.classList.add('filled');
-        else s.classList.remove('filled');
+        if (idx < filled) {
+            s.classList.add('filled');
+            s.textContent = filledEmoji;
+        } else {
+            s.classList.remove('filled');
+            s.textContent = emptyEmoji;
+        }
     });
 }
 
 function closeRatingModal() {
     document.getElementById('rating-modal-overlay').style.display = 'none';
 }
+window.closeRatingModal = closeRatingModal;
 
 document.getElementById('submit-br-btn').addEventListener('click', async () => {
     if (!currentUser) return;
@@ -483,6 +514,7 @@ adminBtn.addEventListener('click', () => {
 function closeAdminModal() {
     document.getElementById('admin-modal-overlay').style.display = 'none';
 }
+window.closeAdminModal = closeAdminModal;
 
 async function loadAdminPanel() {
     const usersSnap = await getDocs(collection(db, "users"));
@@ -498,7 +530,8 @@ async function loadAdminPanel() {
                 <div class="user-admin-stats">Total: ${data.totalScore || 0} | Semaine: ${data.weeklyScore || 0}</div>
             </div>
             <div class="user-admin-actions">
-                <button onclick="editUser('${data.name}')">Éditer</button>
+                <button onclick="editUser('${data.name}')">Éditer code</button>
+                <button onclick="editUserBR('${data.name}')">Éditer BR</button>
                 <button onclick="deleteUser('${data.name}')">Supprimer</button>
             </div>
         `;
@@ -527,6 +560,25 @@ async function editUser(userName) {
         loadAdminPanel();
     }
 }
+window.editUser = editUser;
+
+async function editUserBR(userName) {
+    const userRef = doc(db, "users", userName);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) return;
+    
+    const currentData = userSnap.data();
+    const newTotal = prompt(`Nouveau score total pour ${userName} :`, currentData.totalScore || 0);
+    const newWeekly = prompt(`Nouveau score hebdomadaire pour ${userName} :`, currentData.weeklyScore || 0);
+    
+    if (newTotal !== null && newWeekly !== null) {
+        const totalScore = parseInt(newTotal) || 0;
+        const weeklyScore = parseInt(newWeekly) || 0;
+        await updateDoc(userRef, { totalScore, weeklyScore });
+        loadAdminPanel();
+    }
+}
+window.editUserBR = editUserBR;
 
 async function deleteUser(userName) {
     if (confirm(`Êtes-vous sûr de vouloir supprimer ${userName} ?`)) {
@@ -534,6 +586,7 @@ async function deleteUser(userName) {
         loadAdminPanel();
     }
 }
+window.deleteUser = deleteUser;
 
 document.getElementById('add-user-btn').addEventListener('click', () => {
     document.getElementById('new-user-modal-overlay').style.display = 'flex';
@@ -542,6 +595,7 @@ document.getElementById('add-user-btn').addEventListener('click', () => {
 function closeNewUserModal() {
     document.getElementById('new-user-modal-overlay').style.display = 'none';
 }
+window.closeNewUserModal = closeNewUserModal;
 
 document.getElementById('generate-code-btn').addEventListener('click', () => {
     const code = Math.random().toString(36).substr(2, 6).toUpperCase();
