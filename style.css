@@ -64,6 +64,11 @@ body {
 /* --- App Screen --- */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
 header h1 { font-size: 1.5rem; }
+.logo-container { display: flex; align-items: center; gap: 10px; }
+.app-logo {
+    width: 42px; height: 42px; object-fit: contain; border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 5px 10px rgba(0,0,0,0.3);
+}
 .header-buttons { display: flex; gap: 10px; }
 #logout-btn, #admin-btn { background: none; border: none; color: var(--text-muted); text-decoration: underline; cursor: pointer; }
 #admin-btn:hover { color: var(--primary-color); }
