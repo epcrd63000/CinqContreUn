@@ -8,12 +8,15 @@
 </head>
 <body>
 
-    <section id="login-screen" class="screen">
+    <section id="login-screen" class="screen active">
         <h1>CinqContreUn 🖐️</h1>
         <p>Qui es-tu ?</p>
-        
-        <div id="dynamic-user-grid" class="user-grid">
-            <p style="text-align:center; width:100%;">Chargement des profils...</p>
+        <div class="user-grid">
+            <button class="login-btn" data-name="Léo">Léo</button>
+            <button class="login-btn" data-name="Liam">Liam</button>
+            <button class="login-btn" data-name="Étienne">Étienne</button>
+            <button class="login-btn" data-name="Augustin">Augustin</button>
+            <button class="login-btn" data-name="Antime">Antime</button>
         </div>
 
         <div id="code-login" class="code-login">
@@ -23,27 +26,19 @@
                 <button id="access-code-submit">Valider</button>
             </div>
             <p id="access-code-error" class="error-msg"></p>
-            <button id="cancel-login" class="secondary-btn" style="margin-top: 10px; width: 100%;">Retour</button>
         </div>
     </section>
 
     <section id="app-screen" class="screen">
         <header>
             <div class="user-info">
-                <div id="user-avatar" class="avatar" title="Modifier mon profil"></div>
+                <div id="user-avatar" class="avatar"></div>
                 <h1>Salut <span id="user-display-name"></span> !</h1>
             </div>
-            <div class="header-actions">
-                <button id="admin-btn" style="display:none;">⚙️ Admin</button>
-                <button id="logout-btn">Déconnexion</button>
-            </div>
+            <button id="logout-btn">Changer de compte</button>
         </header>
 
         <main>
-            <div id="target-container" class="target-container" style="display: none;">
-                🎯 Objectif : <span id="target-count">0</span> br max par personne !
-            </div>
-
             <div class="score-container">
                 <div class="score-box">
                     <span>Score Total</span>
@@ -64,7 +59,8 @@
 
             <div class="leaderboard">
                 <h2>🏆 Classement de la semaine</h2>
-                <ul id="leaderboard-list"></ul>
+                <ul id="leaderboard-list">
+                    </ul>
             </div>
 
             <div class="br-feed">
@@ -73,92 +69,21 @@
             </div>
 
             <div class="br-detail" id="br-detail" style="display:none;">
-                <h2>Détails</h2>
-                <div id="br-detail-text" class="br-detail-content"></div>
+                <h2>Détails de la br</h2>
+                <p id="br-detail-text"></p>
                 <ul id="br-comments-list"></ul>
                 <input type="text" id="br-comment-input" placeholder="Ajoute un commentaire">
-                <button id="br-comment-submit" class="primary-btn">Envoyer</button>
-                <button id="br-detail-close" class="secondary-btn">Fermer</button>
+                <button id="br-comment-submit">Envoyer</button>
+                <button id="br-detail-close">Fermer</button>
             </div>
 
             <div class="history">
-                <h2>📜 Palmarès</h2>
-                <ul id="history-list"></ul>
+                <h2>📜 Palmarès (Semaines passées)</h2>
+                <ul id="history-list">
+                    </ul>
             </div>
         </main>
     </section>
-
-    <div id="br-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h2>Détaille ta performance</h2>
-            <input type="text" id="br-desc" placeholder="Une petite description ? (facultatif)">
-            
-            <div class="rating-group">
-                <label>Durée</label>
-                <div class="stars" data-category="duree" data-value="0">
-                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-                </div>
-            </div>
-            <div class="rating-group">
-                <label>Plaisir</label>
-                <div class="stars" data-category="plaisir" data-value="0">
-                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-                </div>
-            </div>
-            <div class="rating-group">
-                <label>Qualité (Vidéo/Partenaire)</label>
-                <div class="stars" data-category="qualite" data-value="0">
-                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-                </div>
-            </div>
-
-            <div class="modal-actions">
-                <button id="cancel-br" class="secondary-btn">Annuler</button>
-                <button id="submit-br" class="primary-btn">Valider (+1)</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="profile-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h2>Mon Profil</h2>
-            <p>Ajoute l'URL d'une image pour ton avatar :</p>
-            <input type="url" id="profile-pic-url" placeholder="https://lien-vers-mon-image.jpg">
-            <div class="modal-actions">
-                <button id="remove-pic-btn" class="secondary-btn" style="color:#ff6b6b;">Supprimer la photo</button>
-                <button id="save-pic-btn" class="primary-btn">Enregistrer</button>
-            </div>
-            <button id="close-profile-btn" class="secondary-btn" style="width: 100%; margin-top: 10px;">Fermer</button>
-        </div>
-    </div>
-
-    <div id="admin-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h2>Espace Admin (Étienne) 👑</h2>
-            
-            <div class="admin-section">
-                <h3>Objectif Hebdomadaire</h3>
-                <div class="code-row">
-                    <input type="number" id="admin-target-input" placeholder="Ex: 10">
-                    <button id="admin-save-target" class="primary-btn">Sauver</button>
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <h3>Ajouter un pote</h3>
-                <input type="text" id="admin-new-name" placeholder="Prénom">
-                <input type="text" id="admin-new-code" placeholder="Code secret (ex: 1234)">
-                <button id="admin-add-user" class="primary-btn" style="width:100%; margin-top:5px;">Créer le profil</button>
-            </div>
-
-            <div class="admin-section">
-                <h3>Comptes & Codes existants</h3>
-                <ul id="admin-user-list" class="admin-list"></ul>
-            </div>
-
-            <button id="close-admin-btn" class="secondary-btn" style="width: 100%; margin-top: 15px;">Fermer</button>
-        </div>
-    </div>
 
     <script type="module" src="app.js"></script>
 </body>
