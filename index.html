@@ -27,7 +27,10 @@
         <header>
             <div class="user-info">
                 <div id="user-avatar" class="avatar" style="cursor: pointer;" title="Clique pour modifier ta photo"></div>
-                <h1>Salut <span id="user-display-name"></span> !</h1>
+                <div class="user-header-text">
+                    <h1>Salut <span id="user-display-name"></span> !</h1>
+                    <p id="user-confrerie" class="user-confrerie"></p>
+                </div>
             </div>
             <div class="header-buttons">
                 <button id="admin-btn" style="display: none;">⚙️ Admin</button>
@@ -155,6 +158,7 @@
                         <div class="admin-tabs">
                             <button class="admin-tab-btn active" data-tab="users">Utilisateurs</button>
                             <button class="admin-tab-btn" data-tab="codes">Codes d'accès</button>
+                            <button class="admin-tab-btn" data-tab="confreries">Confréries</button>
                             <button class="admin-tab-btn" data-tab="settings">Paramètres</button>
                         </div>
                         
@@ -167,6 +171,12 @@
                         <div id="tab-codes" class="admin-tab-content">
                             <h3>Codes d'accès</h3>
                             <div class="codes-list" id="codes-list"></div>
+                        </div>
+
+                        <div id="tab-confreries" class="admin-tab-content">
+                            <h3>Gestion des Confréries</h3>
+                            <div class="confreries-admin-list" id="confreries-admin-list"></div>
+                            <button id="add-confrerie-btn" style="margin-top: 10px;">+ Créer Confrérie</button>
                         </div>
 
                         <div id="tab-settings" class="admin-tab-content">
@@ -196,6 +206,19 @@
                             <button id="create-user-btn">Créer</button>
                             <button onclick="closeNewUserModal()">Annuler</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: Sélectionner Confrérie -->
+            <div class="modal-overlay" id="confrerie-modal-overlay" style="display:none;">
+                <div class="modal" id="confrerie-modal">
+                    <div class="modal-header">
+                        <h2>Choisis ta Confrérie</h2>
+                    </div>
+                    <div class="modal-content">
+                        <div class="confrerie-grid" id="confrerie-grid"></div>
+                        <button id="new-confrerie-btn" style="margin-top: 10px; display: none;">+ Créer Confrérie</button>
                     </div>
                 </div>
             </div>

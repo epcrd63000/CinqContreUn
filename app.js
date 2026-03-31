@@ -382,7 +382,11 @@ document.getElementById('submit-br-btn').addEventListener('click', async () => {
         ratings: ratings
     });
     const userRef = doc(db, "users", currentUser);
-    await updateDoc(userRef, { totalScore: increment(1), weeklyScore: increment(1) });
+    await updateDoc(userRef, { 
+        totalScore: increment(1), 
+        weeklyScore: increment(1),
+        lastWeeklyScoreUpdate: serverTimestamp() 
+    });
     closeRatingModal();
 });
 
@@ -406,7 +410,8 @@ function startListeners() {
                 name: data.name,
                 total: data.totalScore || 0,
                 weekly: data.weeklyScore || 0,
-                photoUrl: data.photoUrl || null
+                photoUrl: data.photoUrl || null,
+                lastUpdate: data.lastWeeklyScoreUpdate || null
             });
             userPhotoByUser[data.name] = data.photoUrl || null;
             if (data.name === currentUser) {
@@ -455,16 +460,36 @@ function startListeners() {
 }
 
 function updateLeaderboard(usersData) {
-    usersData.sort((a, b) => b.weekly - a.weekly);
+    usersData.sort((a, b) => {
+        if (b.weekly !== a.weekly) {
+            return b.weekly - a.weekly;
+        }
+        if (!a.lastUpdate || !b.lastUpdate) {
+            return 0;
+        }
+        return a.lastUpdate.toMillis() - b.lastUpdate.toMillis();
+    });
+
     const list = document.getElementById('leaderboard-list');
     list.innerHTML = '';
     usersData.forEach((u, index) => {
         const li = document.createElement('li');
-        let classes = '';
-        if (index === 0 && u.weekly > 0) classes = 'rank-1';
-        if (index === usersData.length - 1 && usersData[0].weekly > 0) classes = 'rank-last';
-        li.className = classes;
-        li.innerHTML = `<span>${index + 1}. ${u.name}</span> <strong>${u.weekly}</strong>`;
+        li.classList.add('leaderboard-item');
+        if (index === 0 && u.weekly > 0) li.classList.add('rank-1');
+        if (index === 1 && u.weekly > 0) li.classList.add('rank-2');
+        if (index === 2 && u.weekly > 0) li.classList.add('rank-3');
+        if (index === usersData.length - 1 && usersData[0].weekly > 0 && usersData.length > 3) li.classList.add('rank-last');
+        
+        const photo = u.photoUrl ? `url(${u.photoUrl})` : '';
+
+        li.innerHTML = `
+            <div class="leaderboard-rank">${index + 1}</div>
+            <div class="leaderboard-user">
+                <div class="leaderboard-avatar" style="background-image: ${photo}"></div>
+                <span>${u.name}</span>
+            </div>
+            <strong>${u.weekly}</strong>
+        `;
         list.appendChild(li);
     });
 }
