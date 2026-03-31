@@ -33,6 +33,7 @@
                 </div>
             </div>
             <div class="header-buttons">
+                <button id="confrerie-btn">⚔️ Ma Confrérie</button>
                 <button id="admin-btn" style="display: none;">⚙️ Admin</button>
                 <button id="logout-btn">Changer de compte</button>
             </div>
@@ -219,6 +220,53 @@
                     <div class="modal-content">
                         <div class="confrerie-grid" id="confrerie-grid"></div>
                         <button id="new-confrerie-btn" style="margin-top: 10px; display: none;">+ Créer Confrérie</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: Confrerie View -->
+            <div class="modal-overlay" id="confrerie-view-modal-overlay" style="display:none;">
+                <div class="modal large-modal" id="confrerie-view-modal">
+                    <div class="modal-header">
+                        <h2 id="confrerie-view-name">La Confrérie : ...</h2>
+                        <button class="close-btn" id="close-confrerie-view-btn">✕</button>
+                    </div>
+                    <div class="modal-content">
+                        <div class="confrerie-stats">
+                            <div class="score-box">
+                                <span>Total de la Confrérie</span>
+                                <strong id="confrerie-total-score">0</strong>
+                            </div>
+                            <div class="score-box">
+                                <span>BR de la semaine</span>
+                                <strong id="confrerie-weekly-score">0</strong>
+                            </div>
+                            <div class="score-box">
+                                <span>Classement</span>
+                                <strong id="confrerie-rank">#1</strong>
+                            </div>
+                        </div>
+
+                        <h3>Membres</h3>
+                        <div class="confrerie-member-list" id="confrerie-member-list">
+                            <!-- Member cards will be injected here by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: Edit Description -->
+            <div class="modal-overlay" id="edit-description-modal-overlay" style="display:none;">
+                <div class="modal" id="edit-description-modal">
+                    <div class="modal-header">
+                        <h2>Modifier ma description</h2>
+                        <button class="close-btn" id="close-edit-description-btn">✕</button>
+                    </div>
+                    <div class="modal-content">
+                        <textarea id="description-textarea" rows="4" placeholder="Écris quelque chose sur toi..."></textarea>
+                        <div class="modal-actions">
+                            <button id="save-description-btn">Enregistrer</button>
+                        </div>
                     </div>
                 </div>
             </div>

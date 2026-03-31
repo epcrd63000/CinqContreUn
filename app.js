@@ -1,4 +1,4 @@
-﻿// Import des modules Firebase
+// Import des modules Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
     getFirestore,
@@ -103,6 +103,46 @@ async function autoLoginByIp() {
     }
 }
 
+async function initConfrerie() {
+    const confrerieRef = doc(db, "confreries", "la-confrerie-originelle");
+    const confrerieSnap = await getDoc(confrerieRef);
+
+    if (!confrerieSnap.exists()) {
+        console.log("Initialisation de la Confrérie Originelle...");
+        const usersSnap = await getDocs(collection(db, "users"));
+        const userNames = [];
+        let totalScore = 0;
+        let weeklyScore = 0;
+
+        usersSnap.forEach(userDoc => {
+            const data = userDoc.data();
+            userNames.push(userDoc.id);
+            totalScore += data.totalScore || 0;
+            weeklyScore += data.weeklyScore || 0;
+        });
+
+        const batch = writeBatch(db);
+
+        batch.set(confrerieRef, {
+            name: "La Confrérie Originelle",
+            members: userNames,
+            totalScore: totalScore,
+            weeklyScore: weeklyScore
+        });
+
+        usersSnap.forEach(userDoc => {
+            const userRef = doc(db, "users", userDoc.id);
+            batch.update(userRef, {
+                confrerieId: "la-confrerie-originelle",
+                description: `Membre de la première heure.`
+            });
+        });
+
+        await batch.commit();
+        console.log("Confrérie Originelle créée avec tous les utilisateurs.");
+    }
+}
+
 async function init() {
     if (!currentUser) {
         const autoUser = await autoLoginByIp();
@@ -114,6 +154,8 @@ async function init() {
             }
         }
     }
+
+    await initConfrerie(); 
 
     const usersSnap = await getDocs(collection(db, "users"));
     USERS = [];
@@ -695,6 +737,124 @@ function closeAdminModal() {
 }
 window.closeAdminModal = closeAdminModal;
 
+const confrerieBtn = document.getElementById('confrerie-btn');
+const confrerieViewModalOverlay = document.getElementById('confrerie-view-modal-overlay');
+const closeConfrerieViewBtn = document.getElementById('close-confrerie-view-btn');
+const editDescriptionModalOverlay = document.getElementById('edit-description-modal-overlay');
+const closeEditDescriptionBtn = document.getElementById('close-edit-description-btn');
+const saveDescriptionBtn = document.getElementById('save-description-btn');
+const descriptionTextarea = document.getElementById('description-textarea');
+
+confrerieBtn.addEventListener('click', () => {
+    loadConfrerieView();
+    confrerieViewModalOverlay.style.display = 'flex';
+});
+
+closeConfrerieViewBtn.addEventListener('click', () => {
+    confrerieViewModalOverlay.style.display = 'none';
+});
+
+closeEditDescriptionBtn.addEventListener('click', () => {
+    editDescriptionModalOverlay.style.display = 'none';
+});
+
+saveDescriptionBtn.addEventListener('click', async () => {
+    const newDescription = descriptionTextarea.value.trim();
+    if (newDescription) {
+        const userRef = doc(db, "users", currentUser);
+        await updateDoc(userRef, { description: newDescription });
+        editDescriptionModalOverlay.style.display = 'none';
+        loadConfrerieView();
+    }
+});
+
+async function loadConfrerieView() {
+    if (!currentUser) return;
+
+    const userRef = doc(db, "users", currentUser);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) return;
+
+    const userData = userSnap.data();
+    const confrerieId = userData.confrerieId;
+
+    if (!confrerieId) {
+        document.getElementById('confrerie-view-name').textContent = "La Confrérie : Aucune";
+        return;
+    }
+
+    const confrerieRef = doc(db, "confreries", confrerieId);
+    const confrerieSnap = await getDoc(confrerieRef);
+    if (!confrerieSnap.exists()) return;
+
+    const confrerieData = confrerieSnap.data();
+    document.getElementById('confrerie-view-name').textContent = `La Confrérie : ${confrerieData.name}`;
+
+    const memberIds = confrerieData.members || [];
+    let memberData = [];
+    let totalScore = 0;
+    let weeklyScore = 0;
+
+    for (const memberId of memberIds) {
+        const memberRef = doc(db, "users", memberId);
+        const memberSnap = await getDoc(memberRef);
+        if (memberSnap.exists()) {
+            const data = memberSnap.data();
+            memberData.push(data);
+            totalScore += data.totalScore || 0;
+            weeklyScore += data.weeklyScore || 0;
+        }
+    }
+    
+    await updateDoc(confrerieRef, { totalScore, weeklyScore });
+
+    document.getElementById('confrerie-total-score').textContent = totalScore;
+    document.getElementById('confrerie-weekly-score').textContent = weeklyScore;
+
+    document.getElementById('confrerie-rank').textContent = '#1';
+
+    const memberList = document.getElementById('confrerie-member-list');
+    memberList.innerHTML = '';
+    memberData.sort((a, b) => (b.weeklyScore || 0) - (a.weeklyScore || 0));
+
+    memberData.forEach(member => {
+        const card = document.createElement('div');
+        card.className = 'member-card';
+        if (member.name === currentUser) {
+            card.classList.add('is-current-user');
+        }
+
+        const photo = member.photoUrl ? `url('${member.photoUrl}')` : '';
+
+        card.innerHTML = `
+            <div class="member-card-header">
+                <div class="member-avatar" style="background-image: ${photo}"></div>
+                <div class="member-info">
+                    <h4 class="member-name">${member.name}</h4>
+                    <div class="member-stats">
+                        <span>Total: <strong>${member.totalScore || 0}</strong></span>
+                        <span>Semaine: <strong>${member.weeklyScore || 0}</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="member-description">
+                <p>${member.description || 'Pas de description.'}</p>
+                <button class="edit-description-btn">✏️</button>
+            </div>
+        `;
+        
+        const editBtn = card.querySelector('.edit-description-btn');
+        if (editBtn && member.name === currentUser) {
+            editBtn.addEventListener('click', () => {
+                descriptionTextarea.value = member.description || '';
+                editDescriptionModalOverlay.style.display = 'flex';
+            });
+        }
+        
+        memberList.appendChild(card);
+    });
+}
+
 async function loadAdminPanel() {
     const usersSnap = await getDocs(collection(db, "users"));
     const userListAdmin = document.getElementById('user-list-admin');
@@ -729,7 +889,65 @@ async function loadAdminPanel() {
     if (configSnap.exists()) {
         document.getElementById('br-limit-input').value = configSnap.data().brLimit || 999;
     }
+
+    // Load Confreries
+    const confreriesSnap = await getDocs(collection(db, "confreries"));
+    const confreriesListAdmin = document.getElementById('confreries-admin-list');
+    confreriesListAdmin.innerHTML = '';
+    confreriesSnap.forEach(confDoc => {
+        const confrerie = confDoc.data();
+        const div = document.createElement('div');
+        div.className = 'confrerie-admin-item';
+        div.innerHTML = `
+            <div class="confrerie-admin-info">
+                <strong>${confrerie.name}</strong>
+                <span>${(confrerie.members || []).length} membres</span>
+            </div>
+            <div class="confrerie-admin-actions">
+                <button onclick="editConfrerie('${confDoc.id}')">Gérer les membres</button>
+                <button onclick="deleteConfrerie('${confDoc.id}')">Supprimer</button>
+            </div>
+        `;
+        confreriesListAdmin.appendChild(div);
+    });
 }
+
+window.editConfrerie = async (confrerieId) => {
+    const confrerieDoc = await getDoc(doc(db, "confreries", confrerieId));
+    if(!confrerieDoc.exists()) return;
+    const currentMembers = confrerieDoc.data().members.join(', ');
+
+    const newMembers = prompt(`Entrez les noms des membres séparés par des virgules pour ${confrerieId}:`, currentMembers);
+    if (newMembers !== null) {
+        const membersArray = newMembers.split(',').map(s => s.trim()).filter(Boolean);
+        await updateDoc(doc(db, "confreries", confrerieId), { members: membersArray });
+        loadAdminPanel();
+    }
+};
+
+window.deleteConfrerie = async (confrerieId) => {
+    if (confirm(`Supprimer la confrérie ${confrerieId} ?`)) {
+        await deleteDoc(doc(db, "confreries", confrerieId));
+        const q = query(collection(db, "users"), where("confrerieId", "==", confrerieId));
+        const usersSnap = await getDocs(q);
+        const batch = writeBatch(db);
+        usersSnap.forEach(userDoc => {
+            batch.update(doc(db, "users", userDoc.id), { confrerieId: null });
+        });
+        await batch.commit();
+        loadAdminPanel();
+    }
+};
+
+document.getElementById('add-confrerie-btn').addEventListener('click', async () => {
+    const name = prompt("Nom de la nouvelle confrérie :");
+    if (name) {
+        const newId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const newConfrerieRef = doc(db, "confreries", newId);
+        await setDoc(newConfrerieRef, { name: name, members: [] });
+        loadAdminPanel();
+    }
+});
 
 async function editUser(userName) {
     const newCode = prompt(`Nouveau code pour ${userName} :`, "");

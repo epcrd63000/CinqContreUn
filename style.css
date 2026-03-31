@@ -416,3 +416,150 @@ li:last-child { border-bottom: none; }
     max-width: 150px; padding: 8px; border: none; border-radius: 5px;
     background-color: var(--primary-color); color: #fff; cursor: pointer;
 }
+/* --- Confrerie View --- */
+.confrerie-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.confrerie-member-list {
+    display: grid;
+    gap: 20px;
+}
+
+.member-card {
+    background-color: #2a2a2a;
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid #333;
+}
+
+.member-card-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.member-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #333;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid var(--primary-color);
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+}
+
+.member-stats {
+    display: flex;
+    gap: 15px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.member-stats strong {
+    color: var(--text-main);
+}
+
+.member-description {
+    position: relative;
+    font-style: italic;
+    color: #ccc;
+    background-color: #1e1e1e;
+    padding: 10px;
+    border-radius: 8px;
+    min-height: 40px;
+}
+
+.edit-description-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: none; /* Initially hidden */
+}
+
+.member-card.is-current-user .edit-description-btn {
+    display: block; /* Show for current user */
+}
+
+.edit-description-btn:hover {
+    color: var(--text-main);
+}
+
+#description-textarea {
+    width: 100%;
+    background-color: #000;
+    color: var(--text-main);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px;
+    resize: vertical;
+}
+
+#confrerie-btn {
+    background: none;
+    border: 1px solid var(--secondary-color);
+    color: var(--secondary-color);
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+#confrerie-btn:hover {
+    background-color: var(--secondary-color);
+    color: #000;
+}
+
+/* --- Confrerie Admin --- */
+.confreries-admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.confrerie-admin-item {
+    background-color: #000;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.confrerie-admin-info span {
+    margin-left: 10px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.confrerie-admin-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.confrerie-admin-actions button {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #333;
+    color: var(--text-main);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
