@@ -39,6 +39,8 @@ let USERS = [];
 let userPhotoByUser = {}; // pour afficher avatars dans commentaire
 let ratings = { duration: 0, pleasure: 0, quality: 0 };
 let currentBrId = null;
+let editingConfrerieId = null;
+let myChart = null;
 
 const jokes = [
     "Et un de plus !", "Arrête de forcer un peu...", "Tu as que ça à faire ?", 
@@ -421,7 +423,8 @@ document.getElementById('submit-br-btn').addEventListener('click', async () => {
         description: description || "BR sans description",
         createdAt: serverTimestamp(),
         weekId: getISOWeekString(),
-        ratings: ratings
+        ratings: ratings,
+        commentCount: 0
     });
     const userRef = doc(db, "users", currentUser);
     await updateDoc(userRef, { 
@@ -441,6 +444,21 @@ function createFloatingPlus(e) {
     plus.style.top = (rect.height / 2 - 20) + 'px';
     btnMain.appendChild(plus);
     setTimeout(() => plus.remove(), 1000);
+}
+
+function timeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " ans";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " mois";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " jours";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " heures";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes";
+    return Math.floor(seconds) + " secondes";
 }
 
 function startListeners() {
@@ -492,9 +510,28 @@ function startListeners() {
         snapshot.forEach(brDoc => {
             const brData = brDoc.data();
             const li = document.createElement('li');
+            li.className = 'br-card';
+
             const ratingAvg = brData.ratings ? 
                 Math.round((brData.ratings.duration + brData.ratings.pleasure + brData.ratings.quality) / 3) : 0;
-            li.textContent = `${brData.user} : ${brData.description} ⭐ ${ratingAvg > 0 ? ratingAvg : '?'}`;
+            const userAvatarUrl = userPhotoByUser[brData.user] || '';
+            const time = brData.createdAt ? timeAgo(brData.createdAt.toDate()) : 'à l\'instant';
+
+            li.innerHTML = `
+                <div class="br-card-header">
+                    <div class="br-card-avatar" style="background-image: url('${userAvatarUrl}')"></div>
+                    <div class="br-card-user-time">
+                        <span class="br-card-user">${brData.user}</span>
+                        <span class="br-card-time">il y a ${time}</span>
+                    </div>
+                </div>
+                <p class="br-card-description">${brData.description}</p>
+                <div class="br-card-footer">
+                    <span class="br-card-rating">⭐ ${ratingAvg > 0 ? ratingAvg + '/5' : 'Pas noté'}</span>
+                    <span class="br-card-comments">💬 ${brData.commentCount || 0} commentaires</span>
+                </div>
+            `;
+            
             li.addEventListener('click', () => openBrDetail(brDoc.id, brData));
             brFeedList.appendChild(li);
         });
@@ -577,18 +614,18 @@ function openBrDetail(brId, brData) {
         const avatarUrl = userPhotoByUser[c.user] || '';
 
         li.innerHTML = `
-            <div class="br-comment-header">
-                <div class="br-comment-avatar" style="background-image: url('${avatarUrl}')"></div>
+            <div class="br-comment-avatar" style="background-image: url('${avatarUrl}')"></div>
+            <div class="br-comment-body">
+                <p class="br-comment-text">
+                    <span class="br-comment-user">${c.user}</span>
+                    ${c.text}
+                </p>
                 <div class="br-comment-meta">
-                    <strong>${c.user}</strong>
-                    <span>${new Date(c.createdAt?.toDate ? c.createdAt.toDate() : Date.now()).toLocaleString()}</span>
+                    <span>${c.createdAt ? timeAgo(c.createdAt.toDate()) : ''}</span>
+                    <button class="br-comment-reply" data-id="${commentDoc.id}">Répondre</button>
+                    <button class="br-comment-like" data-id="${commentDoc.id}">♥ ${c.likes || 0}</button>
+                    ${currentUser === ADMIN_USER ? `<button class="br-comment-delete" data-id="${commentDoc.id}">Supprimer</button>` : ''}
                 </div>
-            </div>
-            <p class="br-comment-text">${c.text}</p>
-            <div class="br-comment-actions">
-                <button class="br-comment-like" data-id="${commentDoc.id}">♥ ${c.likes || 0}</button>
-                <button class="br-comment-reply" data-id="${commentDoc.id}">Répondre</button>
-                ${currentUser === ADMIN_USER ? `<button class="br-comment-delete" data-id="${commentDoc.id}">Supprimer</button>` : ''}
             </div>
             <ul class="br-subcomments-list" data-parent="${commentDoc.id}"></ul>
         `;
@@ -601,7 +638,7 @@ function openBrDetail(brId, brData) {
 
         const replyBtn = li.querySelector('.br-comment-reply');
         replyBtn.addEventListener('click', async () => {
-            const replyText = prompt('Ton commentaire en réponse :');
+            const replyText = prompt(`Répondre à ${c.user} :`);
             if (!replyText || !replyText.trim()) return;
             await addDoc(commentsRef, {
                 user: currentUser,
@@ -610,13 +647,17 @@ function openBrDetail(brId, brData) {
                 createdAt: serverTimestamp(),
                 likes: 0
             });
+            const brRef = doc(db, "br", currentBrId);
+            await updateDoc(brRef, { commentCount: increment(1) });
         });
 
         if (currentUser === ADMIN_USER) {
             const deleteBtn = li.querySelector('.br-comment-delete');
             deleteBtn.addEventListener('click', async () => {
                 if (!confirm('Supprimer ce commentaire (et ses réponses) ?')) return;
-                await deleteCommentAndReplies(commentDoc.id);
+                const deletedCount = await deleteCommentAndReplies(commentDoc.id);
+                const brRef = doc(db, "br", currentBrId);
+                await updateDoc(brRef, { commentCount: increment(-deletedCount) });
             });
         }
 
@@ -632,11 +673,13 @@ function openBrDetail(brId, brData) {
         const insertCommentWithReplies = (commentDoc) => {
             const node = buildCommentNode(commentDoc);
             const subList = node.querySelector('.br-subcomments-list');
-            const childComments = replyComments.filter(x => x.data().parentId === commentDoc.id);
-            childComments.forEach(childDoc => {
-                const childNode = insertCommentWithReplies(childDoc);
-                subList.appendChild(childNode);
-            });
+            if(subList) {
+                const childComments = replyComments.filter(x => x.data().parentId === commentDoc.id);
+                childComments.forEach(childDoc => {
+                    const childNode = insertCommentWithReplies(childDoc);
+                    subList.appendChild(childNode);
+                });
+            }
             return node;
         };
 
@@ -653,15 +696,20 @@ function openBrDetail(brId, brData) {
 }
 
 async function deleteCommentAndReplies(commentId) {
-    if (!currentBrId) return;
+    if (!currentBrId) return 0;
+    let deletedCount = 0;
     const commentsRef = collection(db, "br", currentBrId, "comments");
     const commentDocRef = doc(db, "br", currentBrId, "comments", commentId);
+    
     const childQuery = query(commentsRef, where("parentId", "==", commentId));
     const childSnap = await getDocs(childQuery);
     for (const child of childSnap.docs) {
-        await deleteCommentAndReplies(child.id);
+        deletedCount += await deleteCommentAndReplies(child.id);
     }
+    
     await deleteDoc(commentDocRef);
+    deletedCount++;
+    return deletedCount;
 }
 
 brDetailClose.addEventListener('click', () => {
@@ -681,6 +729,8 @@ brCommentSubmit.addEventListener('click', async () => {
         createdAt: serverTimestamp(),
         likes: 0
     });
+    const brRef = doc(db, "br", currentBrId);
+    await updateDoc(brRef, { commentCount: increment(1) });
     brCommentInput.value = '';
 });
 
@@ -744,6 +794,12 @@ const editDescriptionModalOverlay = document.getElementById('edit-description-mo
 const closeEditDescriptionBtn = document.getElementById('close-edit-description-btn');
 const saveDescriptionBtn = document.getElementById('save-description-btn');
 const descriptionTextarea = document.getElementById('description-textarea');
+const memberProfileModalOverlay = document.getElementById('member-profile-modal-overlay');
+const closeMemberProfileBtn = document.getElementById('close-member-profile-btn');
+const manageMembersModalOverlay = document.getElementById('manage-members-modal-overlay');
+const closeManageMembersBtn = document.getElementById('close-manage-members-btn');
+const saveMembersBtn = document.getElementById('save-members-btn');
+
 
 confrerieBtn.addEventListener('click', () => {
     loadConfrerieView();
@@ -767,6 +823,37 @@ saveDescriptionBtn.addEventListener('click', async () => {
         loadConfrerieView();
     }
 });
+
+closeMemberProfileBtn.addEventListener('click', () => {
+    memberProfileModalOverlay.style.display = 'none';
+});
+
+closeManageMembersBtn.addEventListener('click', () => {
+    manageMembersModalOverlay.style.display = 'none';
+});
+
+saveMembersBtn.addEventListener('click', async () => {
+    if (!editingConfrerieId) return;
+
+    const newMemberCheckboxes = document.querySelectorAll('#manage-members-list input[type="checkbox"]');
+    const newMembers = [];
+    newMemberCheckboxes.forEach(box => {
+        if (box.checked) {
+            newMembers.push(box.dataset.userName);
+        }
+    });
+
+    const confrerieRef = doc(db, "confreries", editingConfrerieId);
+    await updateDoc(confrerieRef, { members: newMembers });
+
+    // This part is tricky, we need to update all users.
+    // For now, we assume this is handled or will be handled later.
+    // A better implementation would use cloud functions to keep data consistent.
+    
+    manageMembersModalOverlay.style.display = 'none';
+    loadAdminPanel();
+});
+
 
 async function loadConfrerieView() {
     if (!currentUser) return;
@@ -843,9 +930,14 @@ async function loadConfrerieView() {
             </div>
         `;
         
+        card.addEventListener('click', () => {
+            openMemberProfile(member);
+        });
+
         const editBtn = card.querySelector('.edit-description-btn');
         if (editBtn && member.name === currentUser) {
-            editBtn.addEventListener('click', () => {
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 descriptionTextarea.value = member.description || '';
                 editDescriptionModalOverlay.style.display = 'flex';
             });
@@ -853,6 +945,69 @@ async function loadConfrerieView() {
         
         memberList.appendChild(card);
     });
+}
+
+async function openMemberProfile(memberData) {
+    document.getElementById('member-profile-name').textContent = `Profil de ${memberData.name}`;
+
+    const brsRef = collection(db, "br");
+    const q = query(brsRef, where("user", "==", memberData.name), orderBy("createdAt", "asc"));
+    const brsSnap = await getDocs(q);
+
+    const brsByWeek = {};
+    brsSnap.forEach(doc => {
+        const br = doc.data();
+        const weekId = br.weekId;
+        if (!brsByWeek[weekId]) {
+            brsByWeek[weekId] = 0;
+        }
+        brsByWeek[weekId]++;
+    });
+
+    const labels = Object.keys(brsByWeek).sort();
+    const data = labels.map(label => brsByWeek[label]);
+
+    const ctx = document.getElementById('member-br-chart').getContext('2d');
+    if (myChart) {
+        myChart.destroy();
+    }
+    myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.map(l => `S${l.split('-W')[1]}`),
+            datasets: [{
+                label: 'Nombre de BR par semaine',
+                data: data,
+                backgroundColor: 'rgba(218, 193, 3, 0.5)',
+                borderColor: 'rgba(218, 193, 3, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#fff'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#fff'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+
+    memberProfileModalOverlay.style.display = 'flex';
 }
 
 async function loadAdminPanel() {
@@ -913,16 +1068,32 @@ async function loadAdminPanel() {
 }
 
 window.editConfrerie = async (confrerieId) => {
+    editingConfrerieId = confrerieId;
     const confrerieDoc = await getDoc(doc(db, "confreries", confrerieId));
     if(!confrerieDoc.exists()) return;
-    const currentMembers = confrerieDoc.data().members.join(', ');
 
-    const newMembers = prompt(`Entrez les noms des membres séparés par des virgules pour ${confrerieId}:`, currentMembers);
-    if (newMembers !== null) {
-        const membersArray = newMembers.split(',').map(s => s.trim()).filter(Boolean);
-        await updateDoc(doc(db, "confreries", confrerieId), { members: membersArray });
-        loadAdminPanel();
-    }
+    const confrerieData = confrerieDoc.data();
+    document.getElementById('manage-members-title').textContent = `Gérer ${confrerieData.name}`;
+    const currentMembers = confrerieData.members || [];
+
+    const allUsersSnap = await getDocs(collection(db, "users"));
+    const manageMembersList = document.getElementById('manage-members-list');
+    manageMembersList.innerHTML = '';
+
+    allUsersSnap.forEach(userDoc => {
+        const userName = userDoc.id;
+        const item = document.createElement('div');
+        item.className = 'manage-member-item';
+        const isChecked = currentMembers.includes(userName);
+
+        item.innerHTML = `
+            <input type="checkbox" id="user-${userName}" data-user-name="${userName}" ${isChecked ? 'checked' : ''}>
+            <label for="user-${userName}">${userName}</label>
+        `;
+        manageMembersList.appendChild(item);
+    });
+    
+    manageMembersModalOverlay.style.display = 'flex';
 };
 
 window.deleteConfrerie = async (confrerieId) => {
