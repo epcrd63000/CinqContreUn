@@ -769,7 +769,7 @@ async function checkWeeklyReset() {
             batch.set(historyRef, { winner: bestUser, score: bestScore, weekId: savedWeek });
         }
         usersSnap.forEach(userDoc => {
-            batch.update(doc(db, "users", userDoc.id), { weeklyScore: 0 });
+            batch.update(doc(db, "users", userDoc.id), { weeklyScore: 0, lastWeeklyScoreUpdate: null });
         });
         batch.update(configRef, { currentWeek: currentWeek });
         await batch.commit();
