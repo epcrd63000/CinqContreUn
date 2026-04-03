@@ -1955,52 +1955,78 @@ function displayChallengesOnHome() {
     });
 }
 
-function loadOpponentsForChallenge() {
+async function loadOpponentsForChallenge() {
     const list = document.getElementById('challenge-opponents-list');
-    list.innerHTML = '';
+    list.innerHTML = '<p style="color: var(--text-muted);">Chargement...</p>';
     
-    // Charger les membres de la confrérie de l'utilisateur actuel
-    if (!currentUser || !USERS) {
-        console.warn('Pas d\'utilisateur ou de liste USERS');
-        list.innerHTML = '<p style="color: var(--text-muted);">Aucun membre disponible.</p>';
+    if (!currentUser) {
+        list.innerHTML = '<p style="color: var(--text-muted);">Aucun utilisateur connecté.</p>';
         return;
     }
     
-    // Trouver la confrérie de l'utilisateur
-    const currentUserData = USERS.find(u => u.name === currentUser);
-    
-    if (!currentUserData || !currentUserData.confrerie) {
-        // Si pas dans une confrérie, afficher tous les autres utilisateurs
-        USERS.forEach(user => {
-            if (user.name && user.name !== currentUser) {
+    try {
+        // Récupérer les données de l'utilisateur actuel
+        const userRef = doc(db, "users", currentUser);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Utilisateur non trouvé.</p>';
+            return;
+        }
+        
+        const userData = userSnap.data();
+        const confrerieId = userData.confrerieId;
+        
+        if (!confrerieId) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Aucune confrérie assignée.</p>';
+            return;
+        }
+        
+        // Récupérer la confrérie
+        const confrerieRef = doc(db, "confreries", confrerieId);
+        const confrerieSnap = await getDoc(confrerieRef);
+        
+        if (!confrerieSnap.exists()) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Confrérie non trouvée.</p>';
+            return;
+        }
+        
+        const confrerieData = confrerieSnap.data();
+        const memberIds = confrerieData.members || [];
+        
+        if (memberIds.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Aucun membre dans ta confrérie.</p>';
+            return;
+        }
+        
+        list.innerHTML = '';
+        
+        // Charger et afficher chaque membre
+        for (const memberId of memberIds) {
+            if (memberId === currentUser) continue; // Passer l'utilisateur actuel
+            
+            const memberRef = doc(db, "users", memberId);
+            const memberSnap = await getDoc(memberRef);
+            
+            if (memberSnap.exists()) {
+                const memberData = memberSnap.data();
                 const label = document.createElement('label');
                 label.className = 'opponent-checkbox';
                 label.innerHTML = `
-                    <input type="checkbox" value="${user.name}" />
-                    <span>${user.name}</span>
+                    <input type="checkbox" value="${memberData.name}" />
+                    <span>${memberData.name}</span>
                 `;
                 list.appendChild(label);
             }
-        });
-    } else {
-        // Afficher les membres de la confrérie
-        const confrerie = currentUserData.confrerie;
-        USERS.forEach(user => {
-            if (user.name && user.name !== currentUser && user.confrerie === confrerie) {
-                const label = document.createElement('label');
-                label.className = 'opponent-checkbox';
-                label.innerHTML = `
-                    <input type="checkbox" value="${user.name}" />
-                    <span>${user.name}</span>
-                `;
-                list.appendChild(label);
-            }
-        });
-    }
-    
-    // Si aucun adversaire trouvé
-    if (list.children.length === 0) {
-        list.innerHTML = '<p style="color: var(--text-muted);">Aucun adversaire dans ta confrérie.</p>';
+        }
+        
+        if (list.children.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Aucun adversaire dans ta confrérie.</p>';
+        }
+        
+    } catch (err) {
+        console.error('Erreur loadOpponentsForChallenge:', err);
+        list.innerHTML = '<p style="color: red;">Erreur lors du chargement des adversaires.</p>';
     }
 }
 
