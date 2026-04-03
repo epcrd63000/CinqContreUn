@@ -832,46 +832,36 @@ function updateLeaderboard(usersData) {
         const li = document.createElement('li');
         li.classList.add('leaderboard-item');
         
-        // Ajouter le classement (1er, 2e, 3e, 4e, etc.)
-        let rank;
-        if (index === 0 && u.weekly > 0) {
-            rank = '🥇 1er';
-            li.classList.add('rank-1');
-        } else if (index === 1 && u.weekly > 0) {
-            rank = '🥈 2e';
-            li.classList.add('rank-2');
-        } else if (index === 2 && u.weekly > 0) {
-            rank = '🥉 3e';
-            li.classList.add('rank-3');
-        } else {
-            rank = `#${index + 1}`;
-        }
+        // Ajouter les classes de rang
+        if (index === 0 && u.weekly > 0) li.classList.add('rank-1');
+        if (index === 1 && u.weekly > 0) li.classList.add('rank-2');
+        if (index === 2 && u.weekly > 0) li.classList.add('rank-3');
+
+        const rankDiv = document.createElement('div');
+        rankDiv.className = 'leaderboard-rank';
+        rankDiv.textContent = `#${index + 1}`;
+
+        const userDiv = document.createElement('div');
+        userDiv.className = 'leaderboard-user';
 
         const avatar = document.createElement('div');
-        avatar.className = 'avatar-small';
+        avatar.className = 'leaderboard-avatar';
         if (u.photoUrl) {
             avatar.style.backgroundImage = `url(${u.photoUrl})`;
-        } else {
-            avatar.style.backgroundColor = '#ddd';
-            avatar.textContent = u.name[0];
         }
 
         const nameSpan = document.createElement('span');
-        nameSpan.style.fontWeight = 'bold';
         nameSpan.textContent = u.name;
 
-        const rankSpan = document.createElement('span');
-        rankSpan.style.fontSize = '0.9rem';
-        rankSpan.textContent = rank;
+        userDiv.appendChild(avatar);
+        userDiv.appendChild(nameSpan);
 
-        const scoreSpan = document.createElement('span');
-        scoreSpan.style.marginLeft = 'auto';
-        scoreSpan.textContent = `${u.weekly} BR`;
+        const scoreStrong = document.createElement('strong');
+        scoreStrong.textContent = `${u.weekly} BR`;
 
-        li.appendChild(rankSpan);
-        li.appendChild(avatar);
-        li.appendChild(nameSpan);
-        li.appendChild(scoreSpan);
+        li.appendChild(rankDiv);
+        li.appendChild(userDiv);
+        li.appendChild(scoreStrong);
 
         li.addEventListener('click', async () => {
             const userRef = doc(db, 'users', u.name);
