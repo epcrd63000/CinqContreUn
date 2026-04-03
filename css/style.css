@@ -69,6 +69,19 @@ header h1 { font-size: 1.5rem; }
 #logout-btn, #admin-btn { background: none; border: none; color: var(--text-muted); text-decoration: underline; cursor: pointer; }
 #admin-btn:hover { color: var(--primary-color); }
 
+.api-status { color: var(--text-muted); font-size: 0.85rem; margin-top: 6px; }
+.api-btn {
+    margin-top: 8px;
+    background-color: var(--primary-color);
+    border: none;
+    color: #fff;
+    border-radius: 10px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.api-btn:hover { opacity: 0.85; }
+
 .user-info { display: flex; align-items: center; gap: 10px; }
 .avatar {
     width: 40px; height: 40px; border-radius: 50%;

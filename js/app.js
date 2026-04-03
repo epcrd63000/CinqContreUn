@@ -59,6 +59,8 @@ const brCommentInput = document.getElementById('br-comment-input');
 const brCommentSubmit = document.getElementById('br-comment-submit');
 const brDetailClose = document.getElementById('br-detail-close');
 const brRatings = document.getElementById('br-ratings');
+const barkApiStatus = document.getElementById('bark-api-status');
+const barkApiBtn = document.getElementById('bark-api-btn');
 const notificationSection = document.getElementById('notifications-section');
 const notificationList = document.getElementById('notification-list');
 const notificationEmpty = document.getElementById('notification-empty');
@@ -288,6 +290,31 @@ function closePhotoModal() {
     document.getElementById('photo-modal-overlay').style.display = 'none';
 }
 window.closePhotoModal = closePhotoModal;
+
+function configureBarkApiKey() {
+    if (!currentUser) return;
+    const userRef = doc(db, 'users', currentUser);
+
+    showPrompt('Clé Bark API', '', async (newKey) => {
+        if (newKey === null) return;
+        const trimmed = newKey.trim();
+        await updateDoc(userRef, { barkApiKey: trimmed || null });
+        if (barkApiStatus) {
+            barkApiStatus.textContent = trimmed ? 'Bark API : configurée' : 'Bark API : non configurée';
+        }
+        if (!trimmed) {
+            alert('Clé Bark supprimée.');
+        } else {
+            alert('Clé Bark enregistrée.');
+        }
+    });
+}
+
+if (barkApiBtn) {
+    barkApiBtn.addEventListener('click', () => {
+        configureBarkApiKey();
+    });
+}
 
 if (document.getElementById('apply-photo-btn')) {
     document.getElementById('apply-photo-btn').addEventListener('click', async () => {
@@ -520,6 +547,14 @@ function startListeners() {
                     userAvatar.style.backgroundImage = finalPhoto ? `url(${finalPhoto})` : 'none';
                     if (finalPhoto) {
                         userPhotoByUser[currentUser] = finalPhoto;
+                    }
+                }
+
+                if (barkApiStatus) {
+                    if (data.barkApiKey) {
+                        barkApiStatus.textContent = 'Bark API : configurée';
+                    } else {
+                        barkApiStatus.textContent = 'Bark API : non configurée';
                     }
                 }
             }
