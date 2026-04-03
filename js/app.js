@@ -34,6 +34,61 @@ let currentBrId = null;
 let editingConfrerieId = null;
 let myChart = null;
 
+// 50 PHRASES ADDICTIVES ET MOTIVANTES 🔥
+const motivationalPhrases = [
+    "TU AS FROID? 🍆", 
+    "Encore une petite? 😈",
+    "C'est que tu commences! 💪",
+    "La deuxième fait moins mal.",
+    "T'es pas fatigué?",
+    "Y'a des jaloux qui regardent... 👀",
+    "Champion du monde! 🌍",
+    "Vas-y boute en train! 🚂",
+    "Tes potes font pareil en ce moment... 🧐",
+    "C'est bon hein? 😏",
+    "Une de plus et c'est la limite! ⚠️",
+    "Toi aussi tu peux être champion! 🏆",
+    "Tes stats explosent là! 📈",
+    "Allez allez allez! 🏃",
+    "Le sexe c'est bon pour la santé! 💊",
+    "T'es déjà meilleur qu'hier! 📊",
+    "Vas-y pète un record! 🚀",
+    "Encore plus vite! ⚡",
+    "C'est pas fini?! 🤡",
+    "Pas de limite pour toi! ∞",
+    "Double score en vue? 2️⃣",
+    "T'es trop fort! 🔥",
+    "Continue mon petit! 🎯",
+    "Tes voisins t'entendent? 😂",
+    "C'est pour te muscler le doigt! 💪",
+    "À la prochaine tu fais un streak? 🔗",
+    "C'est la machine qui va être contente! 🤖",
+    "Un coup c'est bien! 😋",
+    "Deux c'est mieux! 🎁",
+    "Trois c'est de l'addiction! 😱",
+    "T'es un vrai pro! 👨‍💼",
+    "Tes mains te disent merci! 🙏",
+    "C'est quoi ton secret? 🤫",
+    "Y'a que toi qui comprends! 🧠",
+    "Faut l'avouer c'est cool! 😎",
+    "Tu vas battre le record! 📈",
+    "Tes potes vont flipper! 😲",
+    "C'est juste te détendre... 😌",
+    "Elle crie ta main? 😆",
+    "Pas de limite aujourd'hui! 🌟",
+    "C'est notre petit secret! 🤐",
+    "T'es légendaire! 👑",
+    "Ça va devenir une habitude! 🔄",
+    "Le timing est parfait! ⏰",
+    "Continue continue continue! 🎢",
+    "C'est pas du sport c'est une passion! ❤️",
+    "Ton cerveau te remercie! 🧬",
+    "Allez une dernière pour la route! 🛣️",
+    "J'ADORE ce que tu fais! 😍",
+    "C'est trop bon hein? 🍯",
+    "À demain promis! 📅"
+];
+
 const jokes = [
     "Et un de plus !", "Arrête de forcer un peu...", "Tu as que ça à faire ?", 
     "Machine ! 🤖", "Tricher n'est pas jouer.", "Le doigt le plus musclé de France.",
@@ -128,6 +183,61 @@ let unreadNotificationCount = 0;
 let currentTab = 'home';
 let brInitialLoad = true;
 let barkApiTimer = null;
+
+// 🎬 SYSTÈME DE ROTATION DU TEXTE MOTIVANT
+let phraseRotationInterval = null;
+let currentPhraseIndex = 0;
+let clickSound = null;
+
+// ⚔️ SYSTÈME DE DÉFIS
+let challenges = [];
+let challengeModalOverlay = document.getElementById('challenges-modal-overlay');
+let closeChallengesBtn = document.getElementById('close-challenges-btn');
+let createChallengeBtn = document.getElementById('create-challenge-btn');
+let challengesTabBtns = document.querySelectorAll('.challenge-tab-btn');
+
+
+function initMotivationalText() {
+    console.log('%c🎯 Init texte motivant', 'color: #dac103; font-weight: bold;');
+    
+    // Initialiser le son (Web Audio API)
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Créer le son du clic (beep court)
+    window.playClickSound = () => {
+        try {
+            const ctx = audioContext;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.frequency.value = 800; // Fréquence 800Hz
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.1);
+        } catch(e) {
+            console.log('Son non disponible');
+        }
+    };
+    
+    // Démarrer la rotation du texte
+    if (phraseRotationInterval) clearInterval(phraseRotationInterval);
+    currentPhraseIndex = 0;
+    updateMotivationalText();
+    
+    phraseRotationInterval = setInterval(updateMotivationalText, 3000); // Change toutes les 3 secondes
+}
+
+function updateMotivationalText() {
+    if (!jokeText) return;
+    jokeText.textContent = motivationalPhrases[currentPhraseIndex];
+    jokeText.style.animation = 'fadeInOut 0.5s ease-in-out';
+    currentPhraseIndex = (currentPhraseIndex + 1) % motivationalPhrases.length;
+}
 
 async function sendToBarksNotification(title, body) {
     console.log('🔔 BARK FUNCTION STARTED - title:', title, 'body:', body);
@@ -593,8 +703,11 @@ async function updatePhotoInDb(photoUrl) {
 
 btnMain.addEventListener('click', async (e) => {
     if (!currentUser) return;
+    
+    // 🔊 JOUER LE SON
+    if (window.playClickSound) window.playClickSound();
+    
     createFloatingPlus(e);
-    jokeText.textContent = jokes[Math.floor(Math.random() * jokes.length)];
     ratings = { duration: 0, pleasure: 0, quality: 0 };
     document.getElementById('br-description-input').value = '';
     document.querySelectorAll('.stars[data-category]').forEach(star => {
@@ -1000,6 +1113,8 @@ function setActiveTab(tab) {
         if (leaderboardListSection) leaderboardListSection.style.display = 'block';
     } else if (tab === 'leaderboard') {
         if (brTab) brTab.style.display = 'block';
+    } else if (tab === 'challenges') {
+        openChallengesModal();
     } else if (tab === 'notifications') {
         if (notificationSection) notificationSection.style.display = 'block';
         renderNotifications();
@@ -1695,6 +1810,188 @@ if (bottomNav) {
     });
 }
 
+// ⚔️ FONCTIONS DES DÉFIS
+function openChallengesModal() {
+    challengeModalOverlay.style.display = 'flex';
+    loadActiveChallenges();
+}
+
+function closeChallengesModal() {
+    challengeModalOverlay.style.display = 'none';
+}
+
+function switchChallengeTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.challenge-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.challenge-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    event.target.classList.add('active');
+    
+    if (tabName === 'create-challenge') {
+        loadOpponentsForChallenge();
+    } else if (tabName === 'challenge-history') {
+        loadChallengeHistory();
+    }
+}
+
+function loadActiveChallenges() {
+    const list = document.getElementById('active-challenges-list');
+    const noActive = document.getElementById('no-active-challenges');
+    
+    if (!challenges || challenges.length === 0) {
+        list.style.display = 'none';
+        noActive.style.display = 'block';
+        return;
+    }
+    
+    list.innerHTML = '';
+    noActive.style.display = 'none';
+    
+    challenges.forEach(challenge => {
+        const progress = (challenge.participants[currentUser]?.br || 0) / challenge.target * 100;
+        const card = document.createElement('div');
+        card.className = 'challenge-card';
+        card.innerHTML = `
+            <div class="challenge-card-info">
+                <h4>${challenge.type === 'br-count' ? '🎯 Nombre de BR' : challenge.type === 'streak' ? '🔥 Streak' : '💰 Points'}</h4>
+                <p><strong>${challenge.title}</strong></p>
+                <p>Créé par: ${challenge.creator}</p>
+                <p>Finit le: ${new Date(challenge.endDate).toLocaleDateString()}</p>
+                <p>Récompense: 🏆 ${challenge.reward}</p>
+                <div class="challenge-card-progress">
+                    <div class="challenge-progress-bar" style="width: ${Math.min(progress, 100)}%"></div>
+                </div>
+                <p style="font-size: 0.8rem;">${Math.round(progress)}% - ${challenge.participants[currentUser]?.br || 0}/${challenge.target}</p>
+            </div>
+            <button style="background: var(--primary-color); border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer;">Participer</button>
+        `;
+        list.appendChild(card);
+    });
+}
+
+function loadOpponentsForChallenge() {
+    const list = document.getElementById('challenge-opponents-list');
+    list.innerHTML = '';
+    
+    USERS.forEach(user => {
+        if (user.name !== currentUser) {
+            const label = document.createElement('label');
+            label.className = 'opponent-checkbox';
+            label.innerHTML = `
+                <input type="checkbox" value="${user.name}" />
+                ${user.name}
+            `;
+            list.appendChild(label);
+        }
+    });
+}
+
+function loadChallengeHistory() {
+    const list = document.getElementById('challenge-history-list');
+    const noHistory = document.getElementById('no-history');
+    
+    // Pour l'instant, juste un placeholder
+    if (!challenges || challenges.length === 0) {
+        list.style.display = 'none';
+        noHistory.style.display = 'block';
+        return;
+    }
+    
+    list.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Les défis terminés apparaissent ici.</p>';
+    noHistory.style.display = 'none';
+}
+
+async function createChallenge() {
+    const type = document.getElementById('challenge-type').value;
+    const duration = document.getElementById('challenge-duration').value;
+    const target = document.getElementById('challenge-target').value;
+    const reward = document.getElementById('challenge-reward').value;
+    
+    if (!target || target < 1) {
+        alert('Entre un objectif valide!');
+        return;
+    }
+    
+    const opponents = Array.from(document.querySelectorAll('.opponent-checkbox input:checked')).map(cb => cb.value);
+    
+    if (opponents.length === 0) {
+        alert('Sélectionne au moins un adversaire!');
+        return;
+    }
+    
+    const now = new Date();
+    const endDate = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+    
+    const newChallenge = {
+        id: `challenge_${Date.now()}`,
+        type,
+        title: `Défi: ${target} ${type === 'br-count' ? 'BR' : type === 'streak' ? 'jours' : 'points'}`,
+        target: parseInt(target),
+        reward,
+        creator: currentUser,
+        opponents,
+        startDate: now.toISOString(),
+        endDate: endDate.toISOString(),
+        participants: {
+            [currentUser]: { user: currentUser, br: 0 },
+            ...opponents.reduce((acc, opp) => ({ ...acc, [opp]: { user: opp, br: 0 } }), {})
+        },
+        active: true
+    };
+    
+    try {
+        // Sauvegarder dans Firebase
+        await setDoc(doc(db, 'challenges', newChallenge.id), newChallenge);
+        alert('✅ Défi créé! Que le meilleur gagne! 🏆');
+        
+        // Reset form
+        document.getElementById('challenge-type').value = 'br-count';
+        document.getElementById('challenge-duration').value = '7';
+        document.getElementById('challenge-target').value = '';
+        document.getElementById('challenge-reward').value = '';
+        document.querySelectorAll('.opponent-checkbox input').forEach(cb => cb.checked = false);
+        
+        // Reload challenges
+        loadActiveChallenges();
+        switchChallengeTab('active-challenges');
+    } catch (err) {
+        console.error('Erreur création défi:', err);
+        alert('❌ Erreur lors de la création du défi');
+    }
+}
+
+// Setup event listeners pour les défis
+if (challengesTabBtns) {
+    challengesTabBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            switchChallengeTab(e.target.closest('.challenge-tab-btn').dataset.tab);
+        });
+    });
+}
+
+if (closeChallengesBtn) {
+    closeChallengesBtn.addEventListener('click', closeChallengesModal);
+}
+
+if (createChallengeBtn) {
+    createChallengeBtn.addEventListener('click', createChallenge);
+}
+
+// Charger les défis en temps réel
+const challengesRef = query(collection(db, 'challenges'), where('active', '==', true));
+onSnapshot(challengesRef, (snapshot) => {
+    challenges = snapshot.docs.map(doc => doc.data());
+    console.log('%c📊 Défis chargés', 'color: #dac103; font-weight: bold;', challenges.length);
+});
+
 // On startup, ensure home tab is active
 setActiveTab('home');
 
+// 🎯 INITIALISER LE SYSTÈME MOTIVANT
+initMotivationalText();
