@@ -200,43 +200,79 @@ let challengesTabBtns = document.querySelectorAll('.challenge-tab-btn');
 function initMotivationalText() {
     console.log('%c🎯 Init texte motivant', 'color: #dac103; font-weight: bold;');
     
-    // Initialiser le son (Web Audio API)
+    // Initialiser le son (Web Audio API) - SON DUOLINGO STYLE
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     
-    // Créer le son du clic (beep court)
+    // Créer le son du clic (succès Duolingo)
     window.playClickSound = () => {
         try {
             const ctx = audioContext;
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
             
-            osc.connect(gain);
-            gain.connect(ctx.destination);
+            // Deux notes pour effet succès
+            const notes = [523.25, 659.25]; // Do, Mi
+            const noteDuration = 0.1;
+            const delayBetweenNotes = 0.05;
+            const currentTime = ctx.currentTime;
             
-            osc.frequency.value = 800; // Fréquence 800Hz
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-            
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.1);
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.frequency.value = freq;
+                const startTime = currentTime + (idx * (noteDuration + delayBetweenNotes));
+                
+                gain.gain.setValueAtTime(0.3, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + noteDuration);
+                
+                osc.start(startTime);
+                osc.stop(startTime + noteDuration);
+            });
         } catch(e) {
             console.log('Son non disponible');
         }
     };
     
-    // Démarrer la rotation du texte
-    if (phraseRotationInterval) clearInterval(phraseRotationInterval);
-    currentPhraseIndex = 0;
-    updateMotivationalText();
+    // Animation agressive du texte
+    let challengeMessages = [
+        "⚔️ LANCE UN DÉFI!",
+        "🔥 DÉFIE TES POTES!",
+        "💪 QUI OSERA?",
+        "🏆 GAGNE LA GLOIRE!",
+        "🎯 MONTRE TON POUVOIR!",
+        "⚡ TU PEUX LE FAIRE!",
+        "🚀 EXPLOSE LES SCORES!",
+        "👑 SOIS LE CHAMPION!",
+        "🌟 PROUVE TON WORTH!",
+        "💥 FAIS-MOI PEUR!"
+    ];
     
-    phraseRotationInterval = setInterval(updateMotivationalText, 3000); // Change toutes les 3 secondes
+    let messageIndex = 0;
+    
+    function updateMotivationalText() {
+        if (!jokeText) return;
+        
+        jokeText.textContent = challengeMessages[messageIndex];
+        jokeText.style.animation = 'none';
+        
+        // Force reflow pour relancer l'animation
+        void jokeText.offsetWidth;
+        
+        jokeText.style.animation = 'challengePulse 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        
+        messageIndex = (messageIndex + 1) % challengeMessages.length;
+    }
+    
+    if (phraseRotationInterval) clearInterval(phraseRotationInterval);
+    updateMotivationalText();
+    phraseRotationInterval = setInterval(updateMotivationalText, 3000);
 }
 
+// Ancienne fonction renommée
 function updateMotivationalText() {
-    if (!jokeText) return;
-    jokeText.textContent = motivationalPhrases[currentPhraseIndex];
-    jokeText.style.animation = 'fadeInOut 0.5s ease-in-out';
-    currentPhraseIndex = (currentPhraseIndex + 1) % motivationalPhrases.length;
+    // Fonction appelée par init
 }
 
 async function sendToBarksNotification(title, body) {
@@ -1106,12 +1142,21 @@ function setActiveTab(tab) {
     if (notificationSection) notificationSection.style.display = 'none';
 
     // main action button and score should always remain visible
+    const scoreContainer = document.querySelector('.score-container');
+    const buttonContainer = document.querySelector('.button-container');
+    
+    if (scoreContainer) scoreContainer.style.display = 'flex';
+    if (buttonContainer) buttonContainer.style.display = 'block';
     if (navMainButton) navMainButton.style.display = 'block';
 
     if (tab === 'home') {
         // Afficher le classement complet au lieu du podium
         if (leaderboardListSection) leaderboardListSection.style.display = 'block';
+        displayChallengesOnHome();
     } else if (tab === 'leaderboard') {
+        // Masquer le button et les scores pour le tab BR
+        if (scoreContainer) scoreContainer.style.display = 'none';
+        if (buttonContainer) buttonContainer.style.display = 'none';
         if (brTab) brTab.style.display = 'block';
     } else if (tab === 'challenges') {
         openChallengesModal();
@@ -1876,21 +1921,87 @@ function loadActiveChallenges() {
     });
 }
 
+function displayChallengesOnHome() {
+    const homeSection = document.getElementById('active-challenges-home');
+    const listDiv = document.getElementById('home-challenges-list');
+    
+    if (!challenges || challenges.length === 0) {
+        homeSection.style.display = 'none';
+        return;
+    }
+    
+    homeSection.style.display = 'block';
+    listDiv.innerHTML = '';
+    
+    // Afficher max 2 défis sur l'accueil
+    challenges.slice(0, 2).forEach(challenge => {
+        const progress = (challenge.participants[currentUser]?.br || 0) / challenge.target * 100;
+        
+        const card = document.createElement('div');
+        card.className = 'home-challenge-card';
+        card.addEventListener('click', openChallengesModal);
+        
+        card.innerHTML = `
+            <div class="home-challenge-info">
+                <h4>${challenge.title}</h4>
+                <p>Par ${challenge.creator} • Récompense: 🏆 ${challenge.reward}</p>
+            </div>
+            <div class="home-challenge-progress">
+                <div class="home-challenge-progress-bar" style="width: ${Math.min(progress, 100)}%"></div>
+            </div>
+        `;
+        
+        listDiv.appendChild(card);
+    });
+}
+
 function loadOpponentsForChallenge() {
     const list = document.getElementById('challenge-opponents-list');
     list.innerHTML = '';
     
-    USERS.forEach(user => {
-        if (user.name !== currentUser) {
-            const label = document.createElement('label');
-            label.className = 'opponent-checkbox';
-            label.innerHTML = `
-                <input type="checkbox" value="${user.name}" />
-                ${user.name}
-            `;
-            list.appendChild(label);
-        }
-    });
+    // Charger les membres de la confrérie de l'utilisateur actuel
+    if (!currentUser || !USERS) {
+        console.warn('Pas d\'utilisateur ou de liste USERS');
+        list.innerHTML = '<p style="color: var(--text-muted);">Aucun membre disponible.</p>';
+        return;
+    }
+    
+    // Trouver la confrérie de l'utilisateur
+    const currentUserData = USERS.find(u => u.name === currentUser);
+    
+    if (!currentUserData || !currentUserData.confrerie) {
+        // Si pas dans une confrérie, afficher tous les autres utilisateurs
+        USERS.forEach(user => {
+            if (user.name && user.name !== currentUser) {
+                const label = document.createElement('label');
+                label.className = 'opponent-checkbox';
+                label.innerHTML = `
+                    <input type="checkbox" value="${user.name}" />
+                    <span>${user.name}</span>
+                `;
+                list.appendChild(label);
+            }
+        });
+    } else {
+        // Afficher les membres de la confrérie
+        const confrerie = currentUserData.confrerie;
+        USERS.forEach(user => {
+            if (user.name && user.name !== currentUser && user.confrerie === confrerie) {
+                const label = document.createElement('label');
+                label.className = 'opponent-checkbox';
+                label.innerHTML = `
+                    <input type="checkbox" value="${user.name}" />
+                    <span>${user.name}</span>
+                `;
+                list.appendChild(label);
+            }
+        });
+    }
+    
+    // Si aucun adversaire trouvé
+    if (list.children.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-muted);">Aucun adversaire dans ta confrérie.</p>';
+    }
 }
 
 function loadChallengeHistory() {
@@ -1989,6 +2100,10 @@ const challengesRef = query(collection(db, 'challenges'), where('active', '==', 
 onSnapshot(challengesRef, (snapshot) => {
     challenges = snapshot.docs.map(doc => doc.data());
     console.log('%c📊 Défis chargés', 'color: #dac103; font-weight: bold;', challenges.length);
+    // Rafraîchir l'affichage sur l'accueil
+    if (currentTab === 'home') {
+        displayChallengesOnHome();
+    }
 });
 
 // On startup, ensure home tab is active
