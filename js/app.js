@@ -95,7 +95,14 @@ async function sendToBarksNotification(title, body) {
     
     const userData = userSnap.data();
     console.log('Données utilisateur:', userData);
-    const barkApiKey = userData.barkApiKey;
+    let barkApiKey = userData.barkApiKey;
+    
+    // Nettoyer la clé si elle contient une URL
+    if (barkApiKey && barkApiKey.includes('https://')) {
+        console.log('%c🧹 Nettoyage de la clé Bark...', 'color: orange; font-weight: bold;');
+        barkApiKey = barkApiKey.replace('https://api.day.app/', '').replace(/\//g, '');
+    }
+    
     if (!barkApiKey) {
         console.log('%c⚠️ Pas de clé Bark API configurée', 'color: orange; font-weight: bold;');
         return;
@@ -392,7 +399,15 @@ function configureBarkApiKey() {
             console.log('❌ Prompt annulé');
             return;
         }
-        const trimmed = newKey.trim();
+        let trimmed = newKey.trim();
+        
+        // Extraire la clé si une URL complète est collée
+        if (trimmed.includes('https://api.day.app/')) {
+            console.log('%c🔍 URL détectée, extraction de la clé...', 'color: #750808; font-weight: bold;');
+            trimmed = trimmed.replace('https://api.day.app/', '').replace(/\//g, '');
+            console.log('Clé extraite:', trimmed);
+        }
+        
         console.log('%c💾 Sauvegarde clé Bark dans Firestore', 'color: #750808; font-weight: bold;');
         await updateDoc(userRef, { barkApiKey: trimmed || null });
         if (barkApiStatus) {
