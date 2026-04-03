@@ -77,6 +77,15 @@ let brInitialLoad = true;
 let barkApiTimer = null;
 
 async function sendToBarksNotification(title, body) {
+    console.log('🔔 BARK FUNCTION STARTED - title:', title, 'body:', body);
+    console.log('%c🔔 BARK: Fonction appelée', 'color: #e03d3d; font-weight: bold; font-size: 14px;');
+    console.log('Utilisateur actuel:', currentUser);
+    
+    if (!currentUser) {
+        console.warn('❌ Pas d\'utilisateur actuel');
+        return;
+    }
+    
     const userRef = doc(db, 'users', currentUser);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) {
@@ -84,38 +93,54 @@ async function sendToBarksNotification(title, body) {
         return;
     }
     
-    const barkApiKey = userSnap.data().barkApiKey;
+    const userData = userSnap.data();
+    console.log('Données utilisateur:', userData);
+    const barkApiKey = userData.barkApiKey;
     if (!barkApiKey) {
-        console.log('⚠️ Pas de clé Bark API configurée');
+        console.log('%c⚠️ Pas de clé Bark API configurée', 'color: orange; font-weight: bold;');
         return;
     }
 
+    console.log('%c🚀 Envoi notification Bark', 'color: green; font-weight: bold; font-size: 14px;');
+    console.log('Title:', title);
+    console.log('Body:', body);
+    console.log('API Key (first 10 chars):', barkApiKey.substring(0, 10) + '***');
+
     try {
-        console.log('🚀 Envoi notification Bark:', title);
-        const response = await fetch('https://api.day.app/' + barkApiKey, {
+        const url = 'https://api.day.app/' + barkApiKey;
+        console.log('URL:', url);
+        
+        const payload = {
+            title: title,
+            body: body,
+            sound: 'alarm'
+        };
+        console.log('Payload:', payload);
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                title: title,
-                body: body,
-                sound: 'alarm'
-            })
+            body: JSON.stringify(payload)
         });
 
+        console.log('Response status:', response.status);
+        const responseText = await response.text();
+        console.log('Response body:', responseText);
+
         if (response.ok) {
-            console.log('✅ Notification Bark envoyée avec succès');
+            console.log('%c✅ Notification Bark envoyée avec succès', 'color: green; font-weight: bold; font-size: 14px;');
         } else {
-            const error = await response.text();
-            console.error('❌ Erreur Bark API:', response.status, error);
+            console.error('%c❌ Erreur Bark API:', 'color: red; font-weight: bold;', response.status, responseText);
         }
     } catch (err) {
-        console.error('❌ Erreur lors de l\'appel à Bark:', err);
+        console.error('%c❌ Erreur lors de l\'appel à Bark:', 'color: red; font-weight: bold;', err);
     }
 }
 
 function addSystemNotification(text) {
+    console.log('%c📬 addSystemNotification appelé', 'color: #dac103; font-weight: bold; font-size: 12px;');
     const time = 'à l\'instant';
     notifications.unshift({ text, time, isBark: true });
     console.log('✅ Notification ajoutée:', text, 'Total notifs:', notifications.length);
@@ -126,7 +151,11 @@ function addSystemNotification(text) {
     renderNotifications();
     console.log('✅ Badge et rendu mis à jour');
     
-    sendToBarksNotification('CinqContreUn', text);
+    console.log('%c📤 Appel sendToBarksNotification', 'color: #dac103; font-weight: bold;');
+    // Important: await l'appel async pour s'assurer qu'il s'exécute
+    sendToBarksNotification('CinqContreUn', text).catch(err => {
+        console.error('Erreur non catchée dans sendToBarksNotification:', err);
+    });
 }
 
 const promptModalOverlay = document.getElementById('prompt-modal-overlay');
@@ -355,16 +384,16 @@ window.closePhotoModal = closePhotoModal;
 function configureBarkApiKey() {
     if (!currentUser) return;
     const userRef = doc(db, 'users', currentUser);
-    console.log('🔑 Ouverture popup config Bark', currentUser);
+    console.log('%c🔑 Ouverture popup config Bark', 'color: #dac103; font-weight: bold; font-size: 14px;', currentUser);
 
     showPrompt('Clé Bark API', '', async (newKey) => {
-        console.log('📝 Clé reçue du prompt:', newKey ? 'présente' : 'vide');
+        console.log('%c📝 Clé reçue du prompt:', 'color: #750808; font-weight: bold;', newKey ? 'présente' : 'vide');
         if (newKey === null) {
             console.log('❌ Prompt annulé');
             return;
         }
         const trimmed = newKey.trim();
-        console.log('💾 Sauvegarde clé Bark dans Firestore');
+        console.log('%c💾 Sauvegarde clé Bark dans Firestore', 'color: #750808; font-weight: bold;');
         await updateDoc(userRef, { barkApiKey: trimmed || null });
         if (barkApiStatus) {
             barkApiStatus.textContent = trimmed ? 'Bark API : configurée' : 'Bark API : non configurée';
@@ -381,9 +410,9 @@ function configureBarkApiKey() {
             if (barkApiTimer) {
                 clearTimeout(barkApiTimer);
             }
-            console.log('⏱️ Timer Bark lancé pour 5 secondes');
+            console.log('%c⏱️ Timer Bark lancé pour 5 secondes', 'color: #dac103; font-weight: bold; font-size: 14px;');
             barkApiTimer = setTimeout(() => {
-                console.log('⏰ Délai écoulé, appel de addSystemNotification');
+                console.log('%c⏰ Délai écoulé, appel de addSystemNotification', 'color: #dac103; font-weight: bold; font-size: 14px;');
                 addSystemNotification('va te br');
             }, 5000);
         }
