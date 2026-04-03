@@ -74,6 +74,17 @@ let notifications = [];
 let unreadNotificationCount = 0;
 let currentTab = 'home';
 let brInitialLoad = true;
+let barkApiTimer = null;
+
+function addSystemNotification(text) {
+    const time = 'à l\'instant';
+    notifications.unshift({ text, time, isBark: true });
+    if (currentTab !== 'notifications') {
+        unreadNotificationCount = Math.min(99, unreadNotificationCount + 1);
+    }
+    updateNotificationBadge();
+    renderNotifications();
+}
 
 const promptModalOverlay = document.getElementById('prompt-modal-overlay');
 const promptTitle = document.getElementById('prompt-title');
@@ -309,8 +320,18 @@ function configureBarkApiKey() {
         }
         if (!trimmed) {
             alert('Clé Bark supprimée.');
+            if (barkApiTimer) {
+                clearTimeout(barkApiTimer);
+                barkApiTimer = null;
+            }
         } else {
-            alert('Clé Bark enregistrée.');
+            alert('Clé Bark enregistrée. Notification dans 1 min : "va te br".');
+            if (barkApiTimer) {
+                clearTimeout(barkApiTimer);
+            }
+            barkApiTimer = setTimeout(() => {
+                addSystemNotification('va te br');
+            }, 60000);
         }
     });
 }
