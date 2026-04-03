@@ -190,28 +190,51 @@ li:last-child { border-bottom: none; }
 }
 
 .modal, .br-modal {
-    background-color: var(--surface-color); border-radius: 15px;
-    max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto;
+    background-color: var(--surface-color);
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal.large-modal { max-width: 700px; }
 
 .modal-header, .br-modal-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 20px; border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #3a3a3a;
 }
 
-.modal-header h2, .br-modal-header h2 { margin: 0; font-size: 1.3rem; border: none; padding: 0; }
+.modal-header h2, .br-modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    border: none;
+    padding: 0;
+}
 
 .close-btn {
-    background: none; border: none; color: var(--text-muted);
-    font-size: 1.5rem; cursor: pointer; padding: 0;
-    width: 30px; height: 30px; display: flex;
-    align-items: center; justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
 }
 
-.close-btn:hover { color: var(--text-main); }
+.close-btn:hover {
+    color: var(--text-main);
+    transform: rotate(90deg);
+}
 
 .modal-content, .br-modal-content {
     padding: 20px; display: flex; flex-direction: column; gap: 15px;
@@ -239,12 +262,20 @@ li:last-child { border-bottom: none; }
 .modal-actions button:last-child { background-color: #333; }
 
 .br-description {
-    font-size: 1.1rem; line-height: 1.6; margin-bottom: 10px;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    background-color: rgba(0,0,0,0.3);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 2px solid var(--secondary-color);
 }
 
 .br-ratings {
-    background-color: #000; padding: 15px; border-radius: 8px;
-    margin-bottom: 10px;
+    background-color: rgba(0,0,0,0.3);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
 }
 
 .br-rating-item {
@@ -259,15 +290,17 @@ li:last-child { border-bottom: none; }
 }
 
 .br-comments-section {
-    padding-top: 20px;
-    margin-top: 20px;
-    border-top: 1px solid #444;
+    padding-top: 15px;
+    margin-top: 15px;
+    border-top: 1px solid #3a3a3a;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 #br-comments-list {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     padding-left: 0;
 }
 
@@ -275,78 +308,149 @@ li:last-child { border-bottom: none; }
     display: flex;
     gap: 10px;
     background-color: transparent;
-    padding: 0;
+    padding: 8px 0;
     border: none;
     align-items: flex-start;
+    transition: background-color 0.2s ease;
+}
+
+.br-comment-item:hover {
+    background-color: rgba(255,255,255,0.02);
 }
 
 .br-comment-avatar {
-    width: 35px;
-    height: 35px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
+    border-radius: 50%;
+    background-color: #333;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid #555;
 }
 
 .br-comment-body {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .br-comment-text {
     color: var(--text-main);
     line-height: 1.4;
+    background-color: rgba(255,255,255,0.05);
+    padding: 6px 10px;
+    border-radius: 8px;
 }
 
 .br-comment-text .br-comment-user {
-    font-weight: bold;
-    margin-right: 6px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-right: 4px;
 }
 
 .br-comment-meta {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
-    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 10px;
 }
 
 .br-comment-meta span {
-    margin-right: 10px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.br-comment-meta span:hover {
+    color: var(--text-main);
 }
 
 .br-comment-meta button {
     background: none;
     border: none;
     color: var(--text-muted);
-    font-weight: bold;
+    font-weight: 500;
     cursor: pointer;
     padding: 0;
+    font-size: 0.75rem;
+    transition: color 0.2s ease;
 }
+
 .br-comment-meta button:hover {
-    text-decoration: underline;
+    color: var(--secondary-color);
+}
+
+.br-comment-like {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.br-comment-like:hover {
+    color: var(--secondary-color);
 }
 
 .br-subcomments-list {
-    margin-top: 15px;
-    padding-left: 45px; /* Indent replies */
+    margin-top: 8px;
+    margin-left: 20px;
+    padding-left: 8px;
+    border-left: 1px solid rgba(255,255,255,0.1);
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
     list-style: none;
 }
 
 .comment-input-row {
-    margin-top: 20px;
-    border-top: 1px solid #444;
-    padding-top: 15px;
+    margin-top: 15px;
+    border-top: 1px solid #3a3a3a;
+    padding-top: 12px;
+    display: flex;
+    gap: 8px;
 }
 
 .comment-input-row input {
-    width: 100%; padding: 10px;
-    border-radius: 6px; border: 1px solid #333;
-    background-color: #000; color: var(--text-main);
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 22px;
+    border: 1px solid #555;
+    background-color: rgba(0,0,0,0.5);
+    color: var(--text-main);
+    font-size: 0.9rem;
+}
+
+.comment-input-row input:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    background-color: rgba(0,0,0,0.8);
+}
+
+.comment-input-row input::placeholder {
+    color: #888;
 }
 
 .comment-input-row button {
-    padding: 10px 15px; border-radius: 6px; border: none;
-    background-color: var(--primary-color); color: #fff;
-    cursor: pointer; font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    background-color: var(--secondary-color);
+    color: #000;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.comment-input-row button:hover {
+    opacity: 0.85;
+    transform: scale(1.05);
 }
 
 .br-comment-like {
