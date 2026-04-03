@@ -79,11 +79,13 @@ let barkApiTimer = null;
 function addSystemNotification(text) {
     const time = 'à l\'instant';
     notifications.unshift({ text, time, isBark: true });
+    console.log('✅ Notification ajoutée:', text, 'Total notifs:', notifications.length);
     if (currentTab !== 'notifications') {
         unreadNotificationCount = Math.min(99, unreadNotificationCount + 1);
     }
     updateNotificationBadge();
     renderNotifications();
+    console.log('✅ Badge et rendu mis à jour');
 }
 
 const promptModalOverlay = document.getElementById('prompt-modal-overlay');
@@ -312,28 +314,37 @@ window.closePhotoModal = closePhotoModal;
 function configureBarkApiKey() {
     if (!currentUser) return;
     const userRef = doc(db, 'users', currentUser);
+    console.log('🔑 Ouverture popup config Bark', currentUser);
 
     showPrompt('Clé Bark API', '', async (newKey) => {
-        if (newKey === null) return;
+        console.log('📝 Clé reçue du prompt:', newKey ? 'présente' : 'vide');
+        if (newKey === null) {
+            console.log('❌ Prompt annulé');
+            return;
+        }
         const trimmed = newKey.trim();
+        console.log('💾 Sauvegarde clé Bark dans Firestore');
         await updateDoc(userRef, { barkApiKey: trimmed || null });
         if (barkApiStatus) {
             barkApiStatus.textContent = trimmed ? 'Bark API : configurée' : 'Bark API : non configurée';
         }
         if (!trimmed) {
+            console.log('🗑️ Clé supprimée');
             alert('Clé Bark supprimée.');
             if (barkApiTimer) {
                 clearTimeout(barkApiTimer);
                 barkApiTimer = null;
             }
         } else {
-            alert('Clé Bark enregistrée. Notification dans 1 min : "va te br".');
+            alert('Clé Bark enregistrée. Notification dans 5 secondes : "va te br".');
             if (barkApiTimer) {
                 clearTimeout(barkApiTimer);
             }
+            console.log('⏱️ Timer Bark lancé pour 5 secondes');
             barkApiTimer = setTimeout(() => {
+                console.log('⏰ Délai écoulé, appel de addSystemNotification');
                 addSystemNotification('va te br');
-            }, 60000);
+            }, 5000);
         }
     });
 }
@@ -740,21 +751,32 @@ function updateLeaderboard(usersData) {
 }
 
 function updateNotificationBadge() {
-    if (!notificationBadge) return;
+    console.log('updateNotificationBadge appelé. Badge exist?', !!notificationBadge, 'Unread count:', unreadNotificationCount);
+    if (!notificationBadge) {
+        console.warn('❌ notificationBadge est null!');
+        return;
+    }
     if (unreadNotificationCount > 0) {
         notificationBadge.style.display = 'flex';
         notificationBadge.textContent = String(unreadNotificationCount);
+        console.log('✅ Badge affiché avec count:', unreadNotificationCount);
     } else {
         notificationBadge.style.display = 'none';
+        console.log('✅ Badge caché');
     }
 }
 
 function renderNotifications() {
-    if (!notificationSection || !notificationList || !notificationEmpty) return;
+    console.log('renderNotifications appelé. notificationSection:', !!notificationSection, 'notificationList:', !!notificationList, 'notificationEmpty:', !!notificationEmpty);
+    if (!notificationSection || !notificationList || !notificationEmpty) {
+        console.warn('❌ Un des éléments de notification est null!');
+        return;
+    }
     if (notifications.length === 0) {
         notificationEmpty.style.display = 'block';
         notificationList.style.display = 'none';
         notificationList.innerHTML = '';
+        console.log('✅ Aucune notification, affichage message vide');
         return;
     }
 
@@ -777,6 +799,7 @@ function renderNotifications() {
 
         notificationList.appendChild(li);
     });
+    console.log('✅ rendu notifications terminé, total:', notifications.length);
 }
 
 function addNotification(brData) {
