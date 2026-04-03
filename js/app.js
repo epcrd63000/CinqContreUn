@@ -40,6 +40,59 @@ const jokes = [
     "Allez, encore un effort !", "Impressionnant. Vraiment.", "C'est ton boss qui va être content."
 ];
 
+const brJokes = [
+    "s'est astiqué le poireau.",
+    "s'est lustré l'asperge.",
+    "s'est épluché la banane.",
+    "s'est poli le chinois.",
+    "s'est essoré le cyclope.",
+    "a fait pleurer le colosse.",
+    "s'est secoué la flûte.",
+    "s'est titillé le goujon.",
+    "s'est poncé le pilon.",
+    "a fait cracher le dragon.",
+    "s'est mouché le grand timonier.",
+    "s'est dégourdi le petit Jésus.",
+    "s'est étouffé le perroquet.",
+    "s'est astiqué la tige.",
+    "s'est chatouillé l'anguille.",
+    "s'est caressé le manche.",
+    "a serré la main du chômeur.",
+    "s'est fait une petite veuve poignet.",
+    "s'est frotté le lampadaire.",
+    "s'est agité la nouille.",
+    "s'est chatouillé la trompette.",
+    "s'est fait chauffer la couenne.",
+    "s'est nettoyé le sifflet.",
+    "s'est astiqué le pommeau.",
+    "s'est taquiné le gardon.",
+    "s'est fait reluire le casque.",
+    "s'est massé le gourdin.",
+    "a fait pleurer le chauve.",
+    "a secoué le prunier.",
+    "s'est brossé le manche.",
+    "a fait chanter l'oiseau borgne.",
+    "s'est astiqué la manivelle.",
+    "s'est tapé sur le champignon.",
+    "s'est rincé le thermomètre.",
+    "a fait dégueuler la bébête.",
+    "s'est titillé la saucisse.",
+    "s'est astiqué le bambou.",
+    "s'est caressé la bestiole.",
+    "s'est dégorgé le limaçon.",
+    "s'est astiqué le javelot.",
+    "s'est lustré le boulon.",
+    "s'est fait mousser le bout.",
+    "s'est tiré sur la tige.",
+    "s'est déridé la trompe.",
+    "s'est secoué la canette.",
+    "s'est astiqué le manche à balai.",
+    "s'est frotté l'allumette.",
+    "s'est lustré la carrosserie.",
+    "s'est branlé le mammouth.",
+    "s'est astiqué le manche à gigot."
+];
+
 const loginScreen = document.getElementById('login-screen');
 const appScreen = document.getElementById('app-screen');
 const btnMain = document.getElementById('main-btn');
@@ -98,9 +151,9 @@ async function sendToBarksNotification(title, body) {
     let barkApiKey = userData.barkApiKey;
     
     // Nettoyer la clé si elle contient une URL
-    if (barkApiKey && barkApiKey.includes('https://')) {
+    if (barkApiKey && barkApiKey.includes('api.day.app')) {
         console.log('%c🧹 Nettoyage de la clé Bark...', 'color: orange; font-weight: bold;');
-        barkApiKey = barkApiKey.replace('https://api.day.app/', '').replace(/\//g, '');
+        barkApiKey = barkApiKey.replace(/https:\/\//g, '').replace(/api\.day\.app\//g, '').replace(/\//g, '');
     }
     
     if (!barkApiKey) {
@@ -402,9 +455,10 @@ function configureBarkApiKey() {
         let trimmed = newKey.trim();
         
         // Extraire la clé si une URL complète est collée
-        if (trimmed.includes('https://api.day.app/')) {
+        if (trimmed.includes('api.day.app')) {
             console.log('%c🔍 URL détectée, extraction de la clé...', 'color: #750808; font-weight: bold;');
-            trimmed = trimmed.replace('https://api.day.app/', '').replace(/\//g, '');
+            // Gérer différents formats: https://api.day.app/KEY ou api.day.app/KEY
+            trimmed = trimmed.replace(/https:\/\//g, '').replace(/api\.day\.app\//g, '').replace(/\//g, '');
             console.log('Clé extraite:', trimmed);
         }
         
@@ -890,15 +944,24 @@ function renderNotifications() {
 function addNotification(brData) {
     if (!brData || !brData.user || brData.user === currentUser) return;
 
+    const isBark = brData.description && brData.description.toLowerCase().includes('bark');
     let text = `${brData.user} a posté une BR`;
+    let notifTitle = 'CinqContreUn - Nouvelle BR';
+    let notifBody = '';
 
     if (brData.description) {
         text = `${brData.user} : ${brData.description}`;
     }
 
-    const isBark = brData.description && brData.description.toLowerCase().includes('bark');
     if (isBark) {
         text = `🚨 BARK : ${brData.user} vient de publier une BR !`;
+        notifTitle = '🚨 BARK Alert';
+        notifBody = `${brData.user} a posté une BR BARK !\n${brData.description}`;
+    } else {
+        // Ajouter une phrase rigolote pour chaque BR
+        const randomJoke = brJokes[Math.floor(Math.random() * brJokes.length)];
+        notifBody = `${brData.user} ${randomJoke}`;
+        text = `${brData.user} ${randomJoke}`;
     }
 
     const time = brData.createdAt ? timeAgo(brData.createdAt.toDate()) : 'à l\'instant';
@@ -912,8 +975,9 @@ function addNotification(brData) {
     updateNotificationBadge();
     renderNotifications();
     
-    if (isBark) {
-        sendToBarksNotification('🚨 BARK Alert', `${brData.user} a posté une BR BARK !\n${brData.description}`);
+    // Envoyer notification Bark
+    if (notifBody) {
+        sendToBarksNotification(notifTitle, notifBody);
     }
 }
 
