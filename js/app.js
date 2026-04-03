@@ -807,6 +807,21 @@ function startListeners() {
 
         brInitialLoad = false;
     });
+
+    // 🚀 Listener global pour notifier TOUS les utilisateurs en temps réel (même hors du feed)
+    console.log('%c📡 Activation listener GLOBAL pour notifs temps-réel', 'color: #00ff00; font-weight: bold; font-size: 14px;');
+    const globalBrQuery = query(collection(db, "br"), orderBy("createdAt", "desc"));
+    onSnapshot(globalBrQuery, (snapshot) => {
+        snapshot.docChanges().forEach(change => {
+            if (change.type === 'added') {
+                const brData = change.doc.data();
+                if (brData && brData.user && brData.user !== currentUser && brInitialLoad === false) {
+                    console.log('%c🔔 Nouvelle BR détectée pour notif:', 'color: #00ff00; font-weight: bold;', brData.user);
+                    addNotification(brData);
+                }
+            }
+        });
+    });
 }
 
 function updateLeaderboard(usersData) {
