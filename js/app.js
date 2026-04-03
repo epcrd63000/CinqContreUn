@@ -213,7 +213,7 @@ function addSystemNotification(text) {
     
     console.log('%c📤 Appel sendToBarksNotification', 'color: #dac103; font-weight: bold;');
     // Important: await l'appel async pour s'assurer qu'il s'exécute
-    sendToBarksNotification('CinqContreUn', text).catch(err => {
+    sendToBarksNotification('💪 CinqContre1', text).catch(err => {
         console.error('Erreur non catchée dans sendToBarksNotification:', err);
     });
 }
@@ -932,7 +932,7 @@ function addNotification(brData) {
 
     const isBark = brData.description && brData.description.toLowerCase().includes('bark');
     let text = `${brData.user} a posté une BR`;
-    let notifTitle = 'CinqContreUn - Nouvelle BR';
+    let notifTitle = '💪 CinqContre1 - Nouvelle BR';
     let notifBody = '';
 
     if (brData.description) {
@@ -941,7 +941,7 @@ function addNotification(brData) {
 
     if (isBark) {
         text = `🚨 BARK : ${brData.user} vient de publier une BR !`;
-        notifTitle = '🚨 BARK Alert';
+        notifTitle = '🚨 CinqContre1 - BARK Alert';
         notifBody = `${brData.user} a posté une BR BARK !\n${brData.description}`;
     } else {
         // Ajouter une phrase rigolote pour chaque BR
@@ -961,7 +961,7 @@ function addNotification(brData) {
     updateNotificationBadge();
     renderNotifications();
     
-    // Envoyer notification Bark
+    // Envoyer notification Bark pour TOUTES les BR
     if (notifBody) {
         sendToBarksNotification(notifTitle, notifBody);
     }
