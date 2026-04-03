@@ -76,6 +76,45 @@ let currentTab = 'home';
 let brInitialLoad = true;
 let barkApiTimer = null;
 
+async function sendToBarksNotification(title, body) {
+    const userRef = doc(db, 'users', currentUser);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+        console.warn('❌ Utilisateur non trouvé pour Bark');
+        return;
+    }
+    
+    const barkApiKey = userSnap.data().barkApiKey;
+    if (!barkApiKey) {
+        console.log('⚠️ Pas de clé Bark API configurée');
+        return;
+    }
+
+    try {
+        console.log('🚀 Envoi notification Bark:', title);
+        const response = await fetch('https://api.day.app/' + barkApiKey, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: title,
+                body: body,
+                sound: 'alarm'
+            })
+        });
+
+        if (response.ok) {
+            console.log('✅ Notification Bark envoyée avec succès');
+        } else {
+            const error = await response.text();
+            console.error('❌ Erreur Bark API:', response.status, error);
+        }
+    } catch (err) {
+        console.error('❌ Erreur lors de l\'appel à Bark:', err);
+    }
+}
+
 function addSystemNotification(text) {
     const time = 'à l\'instant';
     notifications.unshift({ text, time, isBark: true });
@@ -86,6 +125,8 @@ function addSystemNotification(text) {
     updateNotificationBadge();
     renderNotifications();
     console.log('✅ Badge et rendu mis à jour');
+    
+    sendToBarksNotification('CinqContreUn', text);
 }
 
 const promptModalOverlay = document.getElementById('prompt-modal-overlay');
@@ -826,6 +867,10 @@ function addNotification(brData) {
 
     updateNotificationBadge();
     renderNotifications();
+    
+    if (isBark) {
+        sendToBarksNotification('🚨 BARK Alert', `${brData.user} a posté une BR BARK !\n${brData.description}`);
+    }
 }
 
 function setActiveTab(tab) {
