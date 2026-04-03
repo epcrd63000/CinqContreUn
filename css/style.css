@@ -154,7 +154,6 @@ header h1 { font-size: 1.5rem; }
     }
 }
 
-/* 🔥 STREAK ANIMATIONS */
 @keyframes streakFlame {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.15); }
@@ -174,6 +173,52 @@ header h1 { font-size: 1.5rem; }
         opacity: 0;
         transform: translateY(-40px) translateX(var(--tx)) scale(0);
     }
+}
+
+/* 🔥 PHASE 3&4: ANIMATIONS ÉPIQUES */
+@keyframes screenShake {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    10% { transform: translateX(-5px) translateY(-5px); }
+    20% { transform: translateX(5px) translateY(5px); }
+    30% { transform: translateX(-5px) translateY(5px); }
+    40% { transform: translateX(5px) translateY(-5px); }
+    50% { transform: translateX(-3px) translateY(-3px); }
+    60% { transform: translateX(3px) translateY(3px); }
+    70% { transform: translateX(-2px) translateY(2px); }
+    80% { transform: translateX(2px) translateY(-2px); }
+    90% { transform: translateX(-1px) translateY(-1px); }
+}
+
+@keyframes confetti {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotateZ(0deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(400px) rotateZ(720deg);
+    }
+}
+
+@keyframes fireExplosion {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        color: #ff6b6b;
+    }
+    50% {
+        opacity: 1;
+        color: #ffd700;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2) translateY(-200px);
+        color: #ff1744;
+    }
+}
+
+body.streak-milestone {
+    animation: screenShake 0.6s ease-in-out;
 }
 
 .leaderboard, .history, .br-feed { background-color: var(--surface-color); border-radius: 15px; padding: 20px; margin-bottom: 20px; }
@@ -917,10 +962,14 @@ li:last-child { border-bottom: none; }
 }
 
 /* --- Bottom Navigation --- */
+main {
+    padding-bottom: 150px;
+}
+
 #br-tab {
     max-height: calc(100vh - 220px);
     overflow-y: auto;
-    padding-bottom: 100px;
+    padding-bottom: 150px;
 }
 
 .br-card {
@@ -969,7 +1018,7 @@ li:last-child { border-bottom: none; }
     transform: translateX(-50%);
     width: 100%;
     max-width: 500px;
-    height: 60px;
+    height: 120px;
     background-color: var(--surface-color);
     border-top: 1px solid #333;
     display: flex;
@@ -989,7 +1038,7 @@ li:last-child { border-bottom: none; }
     justify-content: center;
     flex: 1;
     height: 100%;
-    padding: 5px 0;
+    padding: 8px 0;
     transition: color 0.2s;
 }
 
@@ -998,11 +1047,11 @@ li:last-child { border-bottom: none; }
 }
 
 .nav-icon {
-    font-size: 1.5rem;
+    font-size: 2rem;
 }
 
 .nav-text {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
 }
 
 .home-podium {

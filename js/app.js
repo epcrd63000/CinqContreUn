@@ -1475,6 +1475,107 @@ function getISOWeekString() {
     return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
 }
 
+// 🎉 PHASE 3&4: ANIMATIONS ÉPIQUES POUR LES MILESTONES
+function triggerMilestoneAnimation(streakDays) {
+    // Screen shake
+    document.body.classList.add('streak-milestone');
+    
+    // Play epic sound
+    playMilestoneSound(streakDays);
+    
+    // Spawn fire particles
+    spawnFireParticles();
+    
+    // Spawn confetti
+    spawnConfetti(streakDays);
+    
+    // Retirer la classe après l'animation
+    setTimeout(() => {
+        document.body.classList.remove('streak-milestone');
+    }, 600);
+}
+
+function playMilestoneSound(streakDays) {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Crescendo épique: plus le streak est haut, plus le son monte
+        const frequencies = streakDays === 7 ? 
+            [523.25, 659.25, 783.99] :  // Do, Mi, Sol (7j)
+            streakDays === 15 ?
+            [523.25, 659.25, 783.99, 1046.50] :  // Do, Mi, Sol, Do (15j)
+            [523.25, 659.25, 783.99, 1046.50, 1318.51];  // Do, Mi, Sol, Do, Mi (30j) - CRESCENDO ÉPIC
+        
+        frequencies.forEach((freq, idx) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.frequency.value = freq;
+            const startTime = audioContext.currentTime + (idx * 0.15);
+            const duration = 0.2;
+            
+            gain.gain.setValueAtTime(0.3, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+            
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        });
+    } catch (e) {
+        console.log('Son épique non disponible');
+    }
+}
+
+function spawnFireParticles() {
+    const container = document.body;
+    
+    for (let i = 0; i < 10; i++) {
+        const particle = document.createElement('div');
+        particle.textContent = '🔥';
+        particle.style.cssText = `
+            position: fixed;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 10000;
+            left: ${Math.random() * window.innerWidth}px;
+            top: 50%;
+            animation: fireExplosion 1.5s ease-out forwards;
+            --tx: ${(Math.random() - 0.5) * 200}px;
+        `;
+        container.appendChild(particle);
+        
+        // Retirer après l'animation
+        setTimeout(() => particle.remove(), 1500);
+    }
+}
+
+function spawnConfetti(streakDays) {
+    const container = document.body;
+    const confettiCount = streakDays === 7 ? 20 : streakDays === 15 ? 40 : 80;
+    const colors = ['🌟', '✨', '⭐', '💛', '🏆', '👑', '💎', '⚡'];
+    
+    for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement('div');
+        const emoji = colors[Math.floor(Math.random() * colors.length)];
+        confetti.textContent = emoji;
+        confetti.style.cssText = `
+            position: fixed;
+            font-size: 1.5rem;
+            pointer-events: none;
+            z-index: 10001;
+            left: ${Math.random() * window.innerWidth}px;
+            top: -50px;
+            animation: confetti ${2 + Math.random() * 1}s ease-in forwards;
+        `;
+        container.appendChild(confetti);
+        
+        // Retirer après l'animation
+        setTimeout(() => confetti.remove(), 3000);
+    }
+}
+
 // 🔥 SYSTÈME DE STREAK - Calcul du jour de streak actuel
 function calculateStreak(user) {
     if (!user.lastBrDate) return 0;
@@ -1551,6 +1652,11 @@ async function updateStreakOnNewBr(userId) {
         if (currentStreak === 7 || currentStreak === 15 || currentStreak === 30) {
             const milestone = currentStreak === 7 ? "🔥 Échauffé!" : currentStreak === 15 ? "👑 Légendaire!" : "💎 Immortel!";
             sendToBarksNotification(`STREAK MILESTONE! 🎉`, `${userData.name} atteint ${currentStreak} jours! ${milestone}`);
+            
+            // 🔥 PHASE 3&4: Animations épiques
+            if (userId === currentUser) {
+                triggerMilestoneAnimation(currentStreak);
+            }
         }
         
         return currentStreak;
