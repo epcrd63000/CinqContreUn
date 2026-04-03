@@ -1966,8 +1966,15 @@ function switchChallengeTab(tabName) {
     });
     
     // Show selected tab
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-    event.target.classList.add('active');
+    const tabContent = document.getElementById(`tab-${tabName}`);
+    if (tabContent) {
+        tabContent.classList.add('active');
+    }
+    
+    const tabBtn = document.querySelector(`.challenge-tab-btn[data-tab="${tabName}"]`);
+    if (tabBtn) {
+        tabBtn.classList.add('active');
+    }
     
     if (tabName === 'create-challenge') {
         loadOpponentsForChallenge();
@@ -2214,7 +2221,10 @@ if (createChallengeBtn) {
 // Charger les défis en temps réel
 const challengesRef = query(collection(db, 'challenges'), where('active', '==', true));
 onSnapshot(challengesRef, (snapshot) => {
-    challenges = snapshot.docs.map(doc => doc.data());
+    challenges = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }));
     console.log('%c📊 Défis chargés', 'color: #dac103; font-weight: bold;', challenges.length);
     // Rafraîchir l'affichage sur l'accueil
     if (currentTab === 'home') {
