@@ -823,69 +823,65 @@ function updateLeaderboard(usersData) {
     const list = document.getElementById('leaderboard-list');
     if (list) list.innerHTML = '';
 
+    // Masquer le podium et afficher un classement complet
     if (podiumPlaces) {
         podiumPlaces.innerHTML = '';
-        for (let position = 1; position <= 3; position++) {
-            const user = usersData[position - 1];
-            const slot = document.createElement('div');
-            slot.className = 'podium-slot';
-            if (position === 1) slot.classList.add('podium-gold');
-            if (position === 2) slot.classList.add('podium-silver');
-            if (position === 3) slot.classList.add('podium-bronze');
-            slot.dataset.position = position;
-
-            const avatar = document.createElement('div');
-            avatar.className = 'avatar-small';
-            if (user && user.photoUrl) {
-                avatar.style.backgroundImage = `url(${user.photoUrl})`;
-            } else {
-                avatar.style.backgroundImage = 'none';
-                avatar.textContent = user ? user.name[0] : '';
-            }
-
-            const name = document.createElement('span');
-            name.textContent = user ? user.name : position === 1 ? '1er' : position === 2 ? '2e' : '3e';
-
-            const score = document.createElement('span');
-            score.style.fontSize = '0.8rem';
-            score.textContent = user ? `${user.weekly} BR` : '';
-
-            slot.appendChild(avatar);
-            slot.appendChild(name);
-            slot.appendChild(score);
-
-            if (user) {
-                slot.addEventListener('click', async () => {
-                    const userRef = doc(db, 'users', user.name);
-                    const userDoc = await getDoc(userRef);
-                    if (userDoc.exists()) {
-                        openMemberProfile(userDoc.data());
-                    }
-                });
-            }
-            podiumPlaces.appendChild(slot);
-        }
     }
 
     usersData.forEach((u, index) => {
         const li = document.createElement('li');
         li.classList.add('leaderboard-item');
-        if (index === 0 && u.weekly > 0) li.classList.add('rank-1');
-        if (index === 1 && u.weekly > 0) li.classList.add('rank-2');
-        if (index === 2 && u.weekly > 0) li.classList.add('rank-3');
-        if (index === usersData.length - 1 && usersData[0].weekly > 0 && usersData.length > 3) li.classList.add('rank-last');
         
-        const photo = u.photoUrl ? `url(${u.photoUrl})` : '';
+        // Ajouter le classement (1er, 2e, 3e, 4e, etc.)
+        let rank;
+        if (index === 0 && u.weekly > 0) {
+            rank = '🥇 1er';
+            li.classList.add('rank-1');
+        } else if (index === 1 && u.weekly > 0) {
+            rank = '🥈 2e';
+            li.classList.add('rank-2');
+        } else if (index === 2 && u.weekly > 0) {
+            rank = '🥉 3e';
+            li.classList.add('rank-3');
+        } else {
+            rank = `#${index + 1}`;
+        }
 
-        li.innerHTML = `
-            <div class="leaderboard-rank">${index + 1}</div>
-            <div class="leaderboard-user">
-                <div class="leaderboard-avatar" style="background-image: ${photo}"></div>
-                <span>${u.name}</span>
-            </div>
-            <strong>${u.weekly}</strong>
-        `;
-        list.appendChild(li);
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar-small';
+        if (u.photoUrl) {
+            avatar.style.backgroundImage = `url(${u.photoUrl})`;
+        } else {
+            avatar.style.backgroundColor = '#ddd';
+            avatar.textContent = u.name[0];
+        }
+
+        const nameSpan = document.createElement('span');
+        nameSpan.style.fontWeight = 'bold';
+        nameSpan.textContent = u.name;
+
+        const rankSpan = document.createElement('span');
+        rankSpan.style.fontSize = '0.9rem';
+        rankSpan.textContent = rank;
+
+        const scoreSpan = document.createElement('span');
+        scoreSpan.style.marginLeft = 'auto';
+        scoreSpan.textContent = `${u.weekly} BR`;
+
+        li.appendChild(rankSpan);
+        li.appendChild(avatar);
+        li.appendChild(nameSpan);
+        li.appendChild(scoreSpan);
+
+        li.addEventListener('click', async () => {
+            const userRef = doc(db, 'users', u.name);
+            const userDoc = await getDoc(userRef);
+            if (userDoc.exists()) {
+                openMemberProfile(userDoc.data());
+            }
+        });
+
+        if (list) list.appendChild(li);
     });
 }
 
@@ -995,7 +991,8 @@ function setActiveTab(tab) {
     if (navMainButton) navMainButton.style.display = 'block';
 
     if (tab === 'home') {
-        if (homePodium) homePodium.style.display = 'block';
+        // Afficher le classement complet au lieu du podium
+        if (leaderboardListSection) leaderboardListSection.style.display = 'block';
     } else if (tab === 'leaderboard') {
         if (brTab) brTab.style.display = 'block';
     } else if (tab === 'notifications') {
