@@ -893,6 +893,34 @@ function timeAgo(date) {
     return Math.floor(seconds) + " secondes";
 }
 
+async function deleteBr(brId, brData) {
+    if (!confirm(`Supprimer cette BR de ${brData.user} ?`)) return;
+    
+    try {
+        const commentsRef = collection(db, "br", brId, "comments");
+        const commentsDocs = await getDocs(commentsRef);
+        for (const commentDoc of commentsDocs.docs) {
+            await deleteDoc(doc(db, "br", brId, "comments", commentDoc.id));
+        }
+        
+        await deleteDoc(doc(db, "br", brId));
+        
+        const userRef = doc(db, "users", brData.user);
+        await updateDoc(userRef, { totalScore: increment(-1) });
+        
+        if (brData.weekId === getISOWeekString()) {
+            await updateDoc(userRef, { weeklyScore: increment(-1) });
+        }
+        
+        addSystemNotification(`BR supprimée (-1 score)`);
+    } catch (err) {
+        console.error('Erreur suppression BR:', err);
+        addSystemNotification('Erreur lors de la suppression');
+    }
+}
+
+window.deleteBr = deleteBr;
+
 function startListeners() {
     onSnapshot(collection(db, "users"), (snapshot) => {
         let usersData = [];
@@ -970,6 +998,9 @@ function startListeners() {
             const userAvatarUrl = userPhotoByUser[brData.user] || '';
             const time = brData.createdAt ? timeAgo(brData.createdAt.toDate()) : 'à l\'instant';
 
+            const deleteBtn = (currentUser === brData.user || currentUser === ADMIN_USER) ? 
+                `<button class="br-card-delete-btn" style="background:none; border:none; cursor:pointer; color:red; font-size:1.2rem; float:right;">🗑️</button>` : '';
+            
             li.innerHTML = `
                 <div class="br-card-header">
                     <div class="br-card-avatar" style="background-image: url('${userAvatarUrl}')"></div>
@@ -977,6 +1008,7 @@ function startListeners() {
                         <span class="br-card-user">${brData.user}</span>
                         <span class="br-card-time">il y a ${time}</span>
                     </div>
+                    ${deleteBtn}
                 </div>
                 <p class="br-card-description">${brData.description}</p>
                 <div class="br-card-footer">
@@ -990,6 +1022,14 @@ function startListeners() {
                 e.stopPropagation();
                 openBrDetail(brDoc.id, brData);
             });
+            
+            const deleteBrBtn = li.querySelector('.br-card-delete-btn');
+            if (deleteBrBtn) {
+                deleteBrBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteBr(brDoc.id, brData);
+                });
+            }
 
             li.addEventListener('click', () => openBrDetail(brDoc.id, brData));
             brFeedList.appendChild(li);
@@ -1268,8 +1308,8 @@ function openBrDetail(brId, brData) {
                 <div class="br-comment-meta">
                     <span>${c.createdAt ? timeAgo(c.createdAt.toDate()) : ''}</span>
                     <button class="br-comment-reply" data-id="${commentDoc.id}">Répondre</button>
-                    <button class="br-comment-like" data-id="${commentDoc.id}">♥ ${c.likes || 0}</button>
-                    ${currentUser === ADMIN_USER ? `<button class="br-comment-delete" data-id="${commentDoc.id}">Supprimer</button>` : ''}
+                    <button class="br-comment-like" data-id="${commentDoc.id}">♥ ${Object.keys(c.likedBy || {}).length}</button>
+                    ${currentUser === c.user || currentUser === ADMIN_USER ? `<button class="br-comment-delete" data-id="${commentDoc.id}">Supprimer</button>` : ''}
                 </div>
             </div>
             <ul class="br-subcomments-list" data-parent="${commentDoc.id}"></ul>
@@ -1278,7 +1318,16 @@ function openBrDetail(brId, brData) {
         const likeBtn = li.querySelector('.br-comment-like');
         likeBtn.addEventListener('click', async () => {
             const commentRef = doc(db, "br", currentBrId, "comments", commentDoc.id);
-            await updateDoc(commentRef, { likes: increment(1) });
+            const likedBy = c.likedBy || {};
+            
+            if (likedBy[currentUser]) {
+                delete likedBy[currentUser];
+            } else {
+                likedBy[currentUser] = true;
+            }
+            
+            likeBtn.textContent = `♥ ${Object.keys(likedBy).length}`;
+            await updateDoc(commentRef, { likedBy });
         });
 
         const replyBtn = li.querySelector('.br-comment-reply');
@@ -1290,7 +1339,7 @@ function openBrDetail(brId, brData) {
                     text: replyText.trim(),
                     parentId: commentDoc.id,
                     createdAt: serverTimestamp(),
-                    likes: 0
+                    likedBy: {}
                 });
                 const brRef = doc(db, "br", currentBrId);
                 await updateDoc(brRef, { commentCount: increment(1) });
@@ -1373,7 +1422,7 @@ brCommentSubmit.addEventListener('click', async () => {
         text,
         parentId: null,
         createdAt: serverTimestamp(),
-        likes: 0
+        likedBy: {}
     });
     const brRef = doc(db, "br", currentBrId);
     await updateDoc(brRef, { commentCount: increment(1) });
