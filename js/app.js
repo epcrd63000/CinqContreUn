@@ -542,7 +542,16 @@ async function init() {
         appScreen.classList.add('active');
         document.getElementById('user-display-name').textContent = currentUser;
         const userRef = doc(db, "users", currentUser);
+        const userSnap = await getDoc(userRef);
         await setDoc(userRef, { name: currentUser }, { merge: true });
+        
+        // 🔥 Afficher le streak du user en header
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const streak = calculateStreak(userData);
+            const streakDisplay = streak > 0 ? '🔥'.repeat(Math.min(streak, 7)) : '';
+            document.getElementById('user-header-streak').textContent = streakDisplay;
+        }
         
         if (currentUser === ADMIN_USER) {
             adminBtn.style.display = 'block';
@@ -864,6 +873,10 @@ document.getElementById('submit-br-btn').addEventListener('click', async () => {
         weeklyScore: increment(1),
         lastWeeklyScoreUpdate: serverTimestamp() 
     });
+    
+    // 🔥 Mettre à jour le streak
+    await updateStreakOnNewBr(currentUser);
+    
     closeRatingModal();
 });
 
@@ -922,6 +935,21 @@ async function deleteBr(brId, brData) {
 window.deleteBr = deleteBr;
 
 function startListeners() {
+    // 🔥 Mettre à jour le streak dans le header
+    const updateUserStreakHeader = async () => {
+        if (!currentUser) return;
+        const userRef = doc(db, "users", currentUser);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const streak = calculateStreak(userData);
+            const streakDisplay = streak > 0 ? '🔥'.repeat(Math.min(streak, 7)) : '';
+            const streakEl = document.getElementById('user-header-streak');
+            if (streakEl) streakEl.textContent = streakDisplay;
+        }
+    };
+    updateUserStreakHeader();
+    
     onSnapshot(collection(db, "users"), (snapshot) => {
         let usersData = [];
         snapshot.forEach(d => {
@@ -931,7 +959,10 @@ function startListeners() {
                 total: data.totalScore || 0,
                 weekly: data.weeklyScore || 0,
                 photoUrl: data.photoUrl || null,
-                lastUpdate: data.lastWeeklyScoreUpdate || null
+                lastUpdate: data.lastWeeklyScoreUpdate || null,
+                currentStreak: data.currentStreak || 0,
+                maxStreak: data.maxStreak || 0,
+                lastBrDate: data.lastBrDate || null
             });
             userPhotoByUser[data.name] = data.photoUrl || null;
             if (data.name === currentUser) {
@@ -1096,7 +1127,13 @@ function updateLeaderboard(usersData) {
         }
 
         const nameSpan = document.createElement('span');
-        nameSpan.textContent = u.name;
+        const streak = calculateStreak(u);
+        const streakDisplay = streak > 0 ? '🔥'.repeat(Math.min(streak, 7)) : '';
+        nameSpan.textContent = `${u.name} ${streakDisplay}`;
+        nameSpan.className = 'leaderboard-name';
+        if (streak >= 7) nameSpan.classList.add('streak-7');
+        if (streak >= 15) nameSpan.classList.add('streak-15');
+        if (streak >= 30) nameSpan.classList.add('streak-30');
 
         userDiv.appendChild(avatar);
         userDiv.appendChild(nameSpan);
@@ -1438,6 +1475,91 @@ function getISOWeekString() {
     return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
 }
 
+// 🔥 SYSTÈME DE STREAK - Calcul du jour de streak actuel
+function calculateStreak(user) {
+    if (!user.lastBrDate) return 0;
+    
+    const lastBr = user.lastBrDate.toDate ? user.lastBrDate.toDate() : new Date(user.lastBrDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    lastBr.setHours(0, 0, 0, 0);
+    
+    // Si la BR n'est pas d'aujourd'hui ou hier = streak reset
+    if (lastBr < yesterday) {
+        return 0;
+    }
+    
+    // Sinon retourne le numero de streak
+    return user.currentStreak || 0;
+}
+
+// 🔥 UPDATE STREAK quand création BR
+async function updateStreakOnNewBr(userId) {
+    try {
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) return;
+        
+        const userData = userSnap.data();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let lastBrDate = userData.lastBrDate;
+        let currentStreak = userData.currentStreak || 0;
+        let maxStreak = userData.maxStreak || 0;
+        
+        if (lastBrDate) {
+            const last = lastBrDate.toDate ? lastBrDate.toDate() : new Date(lastBrDate);
+            last.setHours(0, 0, 0, 0);
+            
+            const dayDiff = Math.floor((today - last) / (1000 * 60 * 60 * 24));
+            
+            if (dayDiff === 0) {
+                // Pas de changement si BR le même jour
+                return currentStreak;
+            } else if (dayDiff === 1) {
+                // Streak continue
+                currentStreak += 1;
+            } else {
+                // Streak reset
+                currentStreak = 1;
+            }
+        } else {
+            // Première BR
+            currentStreak = 1;
+        }
+        
+        // Mettre à jour maxStreak si nécessaire
+        if (currentStreak > maxStreak) {
+            maxStreak = currentStreak;
+        }
+        
+        // Sauvegarder dans BD
+        await updateDoc(userRef, {
+            lastBrDate: today,
+            currentStreak,
+            maxStreak,
+            streakStartDate: userData.streakStartDate || today
+        });
+        
+        // Notif Bark si milestone atteint
+        if (currentStreak === 7 || currentStreak === 15 || currentStreak === 30) {
+            const milestone = currentStreak === 7 ? "🔥 Échauffé!" : currentStreak === 15 ? "👑 Légendaire!" : "💎 Immortel!";
+            sendToBarksNotification(`STREAK MILESTONE! 🎉`, `${userData.name} atteint ${currentStreak} jours! ${milestone}`);
+        }
+        
+        return currentStreak;
+    } catch (err) {
+        console.error('Erreur updateStreak:', err);
+        return 0;
+    }
+}
+
 async function checkWeeklyReset() {
     const currentWeek = getISOWeekString();
     const configRef = doc(db, "system", "config");
@@ -1646,6 +1768,19 @@ async function openMemberProfile(memberData) {
     document.getElementById('member-profile-name').textContent = `Profil de ${memberData.name}`;
     document.getElementById('member-profile-title').textContent = memberData.name;
     document.getElementById('member-profile-description').textContent = memberData.description || 'Pas de description.';
+
+    // 🔥 Afficher le streak
+    const streakEl = document.getElementById('member-profile-streak');
+    if (streakEl) {
+        const streak = calculateStreak(memberData);
+        const maxStreak = memberData.maxStreak || 0;
+        const streakDisplay = streak > 0 ? '🔥'.repeat(Math.min(streak, 7)) : 'Aucun';
+        const badge = streak >= 30 ? '💎' : streak >= 15 ? '👑' : streak >= 7 ? '⚡' : '';
+        streakEl.textContent = `Streak: ${streakDisplay} (Record: ${maxStreak}j) ${badge}`;
+        if (streak > 0) {
+            streakEl.style.color = streak >= 15 ? '#ffd700' : '#ff6b6b';
+        }
+    }
 
     const userAvatarElem = document.getElementById('member-profile-avatar');
     if (userAvatarElem) {
