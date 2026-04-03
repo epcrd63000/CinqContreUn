@@ -231,6 +231,8 @@ async function init() {
         
         checkWeeklyReset();
         startListeners();
+        renderNotifications();
+        updateNotificationBadge();
     } else {
         loginScreen.classList.add('active');
         appScreen.classList.remove('active');
@@ -822,6 +824,7 @@ function setActiveTab(tab) {
         if (brTab) brTab.style.display = 'block';
     } else if (tab === 'notifications') {
         if (notificationSection) notificationSection.style.display = 'block';
+        renderNotifications();
         unreadNotificationCount = 0;
         updateNotificationBadge();
     } else if (tab === 'confrerie') {
