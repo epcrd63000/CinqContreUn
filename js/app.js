@@ -1818,6 +1818,7 @@ function openChallengesModal() {
 
 function closeChallengesModal() {
     challengeModalOverlay.style.display = 'none';
+    setActiveTab('home'); // Retourner à l'accueil après fermer
 }
 
 function switchChallengeTab(tabName) {
