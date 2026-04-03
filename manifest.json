@@ -1,0 +1,15 @@
+{
+  "short_name": "CinqContreUn",
+  "name": "Cinq Contre Un",
+  "icons": [
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "fullscreen",
+  "theme_color": "#750808",
+  "background_color": "#121212"
+}

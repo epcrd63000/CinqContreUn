@@ -17,7 +17,7 @@ body {
     overflow-x: hidden; touch-action: manipulation;
 }
 
-.screen { display: none; width: 100%; max-width: 500px; padding: 20px; flex-direction: column; }
+.screen { display: none; width: 100%; max-width: 500px; padding: 20px 20px 80px 20px; flex-direction: column; }
 .screen.active { display: flex; }
 
 /* --- Login Screen --- */
@@ -686,3 +686,91 @@ li:last-child { border-bottom: none; }
     flex: 1;
     cursor: pointer;
 }
+
+/* --- Bottom Navigation --- */
+#bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 500px;
+    height: 60px;
+    background-color: var(--surface-color);
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 100%;
+    padding: 5px 0;
+    transition: color 0.2s;
+}
+
+.nav-btn.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.5rem;
+}
+
+.nav-text {
+    font-size: 0.7rem;
+}
+
+.badge {
+    position: absolute;
+    top: 5px;
+    right: 20px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 12px;
+    background-color: #e03d3d;
+    color: #fff;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+}
+
+.notifications {
+    display: none;
+    background-color: var(--surface-color);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.notification-item {
+    padding: 10px;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification-item:nth-child(odd) {
+    background-color: rgba(255,255,255,0.04);
+}
+
+.notification-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 10px;
+}
+

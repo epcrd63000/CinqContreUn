@@ -1,4 +1,5 @@
 // Import des modules Firebase
+import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
     getFirestore,
@@ -20,15 +21,6 @@ import {
     serverTimestamp,
     deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyBGnRL-gycaoRQE3TN8vid_yWRJHrJ35PI",
-    authDomain: "cinq-contre-un.firebaseapp.com",
-    projectId: "cinq-contre-un",
-    storageBucket: "cinq-contre-un.firebasestorage.app",
-    messagingSenderId: "895355334637",
-    appId: "1:895355334637:web:10b61a46f9c8966d2a01e4"
-};
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -67,6 +59,51 @@ const brCommentInput = document.getElementById('br-comment-input');
 const brCommentSubmit = document.getElementById('br-comment-submit');
 const brDetailClose = document.getElementById('br-detail-close');
 const brRatings = document.getElementById('br-ratings');
+const notificationSection = document.getElementById('notifications-section');
+const notificationList = document.getElementById('notification-list');
+const notificationEmpty = document.getElementById('notification-empty');
+const notificationBadge = document.getElementById('notification-badge');
+let notifications = [];
+let unreadNotificationCount = 0;
+let currentTab = 'home';
+let brInitialLoad = true;
+
+const promptModalOverlay = document.getElementById('prompt-modal-overlay');
+const promptTitle = document.getElementById('prompt-title');
+const promptInput = document.getElementById('prompt-input');
+const promptOkBtn = document.getElementById('prompt-ok-btn');
+const promptCancelBtn = document.getElementById('prompt-cancel-btn');
+const promptCloseBtn = document.getElementById('prompt-close-btn');
+let promptCallback = null;
+
+function showPrompt(title, defaultValue, callback) {
+    promptTitle.textContent = title;
+    promptInput.value = defaultValue;
+    promptCallback = callback;
+    promptModalOverlay.style.display = 'flex';
+    promptInput.focus();
+}
+
+if(promptOkBtn) {
+    promptOkBtn.addEventListener('click', () => {
+        if (promptCallback) {
+            promptCallback(promptInput.value);
+        }
+        promptModalOverlay.style.display = 'none';
+    });
+}
+
+if(promptCancelBtn) {
+    promptCancelBtn.addEventListener('click', () => {
+        promptModalOverlay.style.display = 'none';
+    });
+}
+
+if(promptCloseBtn) {
+    promptCloseBtn.addEventListener('click', () => {
+        promptModalOverlay.style.display = 'none';
+    });
+}
 
 let pendingUser = null;
 
@@ -506,6 +543,19 @@ function startListeners() {
     const brQuery = query(collection(db, "br"), orderBy("createdAt", "desc"), limit(10));
     onSnapshot(brQuery, (snapshot) => {
         if (!brFeedList) return;
+
+        // Notifications à chaque nouvelle br postée par d'autres joueurs (hors mise en cache initiale)
+        if (snapshot.docChanges) {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added' && !brInitialLoad) {
+                    const brData = change.doc.data();
+                    if (brData && brData.user && brData.user !== currentUser) {
+                        addNotification(brData);
+                    }
+                }
+            });
+        }
+
         brFeedList.innerHTML = '';
         snapshot.forEach(brDoc => {
             const brData = brDoc.data();
@@ -535,6 +585,8 @@ function startListeners() {
             li.addEventListener('click', () => openBrDetail(brDoc.id, brData));
             brFeedList.appendChild(li);
         });
+
+        brInitialLoad = false;
     });
 }
 
@@ -571,6 +623,102 @@ function updateLeaderboard(usersData) {
         `;
         list.appendChild(li);
     });
+}
+
+function updateNotificationBadge() {
+    if (!notificationBadge) return;
+    if (unreadNotificationCount > 0) {
+        notificationBadge.style.display = 'flex';
+        notificationBadge.textContent = String(unreadNotificationCount);
+    } else {
+        notificationBadge.style.display = 'none';
+    }
+}
+
+function renderNotifications() {
+    if (!notificationSection || !notificationList || !notificationEmpty) return;
+    if (notifications.length === 0) {
+        notificationEmpty.style.display = 'block';
+        notificationList.style.display = 'none';
+        notificationList.innerHTML = '';
+        return;
+    }
+
+    notificationEmpty.style.display = 'none';
+    notificationList.style.display = 'block';
+    notificationList.innerHTML = '';
+
+    notifications.forEach(n => {
+        const li = document.createElement('li');
+        li.className = 'notification-item';
+        li.innerHTML = `
+            <span>${n.text}</span>
+            <span class="notification-time">${n.time}</span>
+        `;
+
+        if (n.isBark) {
+            li.style.borderLeft = '3px solid #e03d3d';
+            li.style.backgroundColor = 'rgba(224, 61, 61, 0.1)';
+        }
+
+        notificationList.appendChild(li);
+    });
+}
+
+function addNotification(brData) {
+    if (!brData || !brData.user || brData.user === currentUser) return;
+
+    let text = `${brData.user} a posté une BR`;
+
+    if (brData.description) {
+        text = `${brData.user} : ${brData.description}`;
+    }
+
+    const isBark = brData.description && brData.description.toLowerCase().includes('bark');
+    if (isBark) {
+        text = `🚨 BARK : ${brData.user} vient de publier une BR !`;
+    }
+
+    const time = brData.createdAt ? timeAgo(brData.createdAt.toDate()) : 'à l\'instant';
+
+    notifications.unshift({ text, time, isBark });
+
+    if (currentTab !== 'notifications') {
+        unreadNotificationCount = Math.min(99, unreadNotificationCount + 1);
+    }
+
+    updateNotificationBadge();
+    renderNotifications();
+}
+
+function setActiveTab(tab) {
+    currentTab = tab;
+
+    if (navLeaderboard) navLeaderboard.style.display = 'none';
+    if (navBrFeed) navBrFeed.style.display = 'none';
+    if (navHistory) navHistory.style.display = 'none';
+    if (navMainButton) navMainButton.style.display = 'none';
+    if (notificationSection) notificationSection.style.display = 'none';
+
+    if (tab === 'home') {
+        if (navLeaderboard) navLeaderboard.style.display = 'block';
+        if (navBrFeed) navBrFeed.style.display = 'block';
+        if (navHistory) navHistory.style.display = 'block';
+        if (navMainButton) navMainButton.style.display = 'block';
+    } else if (tab === 'leaderboard') {
+        if (navLeaderboard) navLeaderboard.style.display = 'block';
+    } else if (tab === 'notifications') {
+        if (notificationSection) notificationSection.style.display = 'block';
+        unreadNotificationCount = 0;
+        updateNotificationBadge();
+    } else if (tab === 'confrerie') {
+        if (navLeaderboard) navLeaderboard.style.display = 'block';
+        if (navBrFeed) navBrFeed.style.display = 'block';
+        if (navHistory) navHistory.style.display = 'block';
+        if (navMainButton) navMainButton.style.display = 'block';
+        loadConfrerieView();
+        confrerieViewModalOverlay.style.display = 'flex';
+    }
 }
 
 function openBrDetail(brId, brData) {
@@ -638,17 +786,18 @@ function openBrDetail(brId, brData) {
 
         const replyBtn = li.querySelector('.br-comment-reply');
         replyBtn.addEventListener('click', async () => {
-            const replyText = prompt(`Répondre à ${c.user} :`);
-            if (!replyText || !replyText.trim()) return;
-            await addDoc(commentsRef, {
-                user: currentUser,
-                text: replyText.trim(),
-                parentId: commentDoc.id,
-                createdAt: serverTimestamp(),
-                likes: 0
+            showPrompt(`Répondre à ${c.user} :`, '', async (replyText) => {
+                if (!replyText || !replyText.trim()) return;
+                await addDoc(commentsRef, {
+                    user: currentUser,
+                    text: replyText.trim(),
+                    parentId: commentDoc.id,
+                    createdAt: serverTimestamp(),
+                    likes: 0
+                });
+                const brRef = doc(db, "br", currentBrId);
+                await updateDoc(brRef, { commentCount: increment(1) });
             });
-            const brRef = doc(db, "br", currentBrId);
-            await updateDoc(brRef, { commentCount: increment(1) });
         });
 
         if (currentUser === ADMIN_USER) {
@@ -1111,22 +1260,24 @@ window.deleteConfrerie = async (confrerieId) => {
 };
 
 document.getElementById('add-confrerie-btn').addEventListener('click', async () => {
-    const name = prompt("Nom de la nouvelle confrérie :");
-    if (name) {
-        const newId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        const newConfrerieRef = doc(db, "confreries", newId);
-        await setDoc(newConfrerieRef, { name: name, members: [] });
-        loadAdminPanel();
-    }
+    showPrompt("Nom de la nouvelle confrérie :", "", async (name) => {
+        if (name) {
+            const newId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            const newConfrerieRef = doc(db, "confreries", newId);
+            await setDoc(newConfrerieRef, { name: name, members: [] });
+            loadAdminPanel();
+        }
+    });
 });
 
 async function editUser(userName) {
-    const newCode = prompt(`Nouveau code pour ${userName} :`, "");
-    if (newCode !== null && newCode.trim() !== "") {
-        const userRef = doc(db, "users", userName);
-        await updateDoc(userRef, { accessCode: newCode.trim() });
-        loadAdminPanel();
-    }
+    showPrompt(`Nouveau code pour ${userName} :`, "", async (newCode) => {
+        if (newCode !== null && newCode.trim() !== "") {
+            const userRef = doc(db, "users", userName);
+            await updateDoc(userRef, { accessCode: newCode.trim() });
+            loadAdminPanel();
+        }
+    });
 }
 window.editUser = editUser;
 
@@ -1136,15 +1287,18 @@ async function editUserBR(userName) {
     if (!userSnap.exists()) return;
     
     const currentData = userSnap.data();
-    const newTotal = prompt(`Nouveau score total pour ${userName} :`, currentData.totalScore || 0);
-    const newWeekly = prompt(`Nouveau score hebdomadaire pour ${userName} :`, currentData.weeklyScore || 0);
-    
-    if (newTotal !== null && newWeekly !== null) {
-        const totalScore = parseInt(newTotal) || 0;
-        const weeklyScore = parseInt(newWeekly) || 0;
-        await updateDoc(userRef, { totalScore, weeklyScore });
-        loadAdminPanel();
-    }
+    showPrompt(`Nouveau score total pour ${userName} :`, currentData.totalScore || 0, (newTotal) => {
+        if (newTotal !== null) {
+            showPrompt(`Nouveau score hebdomadaire pour ${userName} :`, currentData.weeklyScore || 0, async (newWeekly) => {
+                if (newWeekly !== null) {
+                    const totalScore = parseInt(newTotal) || 0;
+                    const weeklyScore = parseInt(newWeekly) || 0;
+                    await updateDoc(userRef, { totalScore, weeklyScore });
+                    loadAdminPanel();
+                }
+            });
+        }
+    });
 }
 window.editUserBR = editUserBR;
 
@@ -1206,3 +1360,28 @@ document.getElementById('save-settings-btn').addEventListener('click', async () 
 
 loadLoginButtons();
 init();
+
+// --- Bottom Navigation ---
+const bottomNav = document.getElementById('bottom-nav');
+const navLeaderboard = document.querySelector('.leaderboard');
+const navBrFeed = document.querySelector('.br-feed');
+const navHistory = document.querySelector('.history');
+const navMainButton = document.querySelector('.button-container');
+
+if (bottomNav) {
+    bottomNav.addEventListener('click', (e) => {
+        const targetButton = e.target.closest('.nav-btn');
+        if (!targetButton) return;
+
+        const currentActive = bottomNav.querySelector('.nav-btn.active');
+        if (currentActive) currentActive.classList.remove('active');
+        targetButton.classList.add('active');
+
+        const targetView = targetButton.dataset.target;
+        setActiveTab(targetView);
+    });
+}
+
+// On startup, ensure home tab is active
+setActiveTab('home');
+
