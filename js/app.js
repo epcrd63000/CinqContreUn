@@ -59,6 +59,11 @@ const brCommentInput = document.getElementById('br-comment-input');
 const brCommentSubmit = document.getElementById('br-comment-submit');
 const brDetailClose = document.getElementById('br-detail-close');
 const brRatings = document.getElementById('br-ratings');
+
+const homePodium = document.getElementById('home-podium');
+const podiumPlaces = document.getElementById('podium-places');
+const leaderboardListSection = document.getElementById('leaderboard-list-section');
+const brTab = document.getElementById('br-tab');
 const barkApiStatus = document.getElementById('bark-api-status');
 const barkApiBtn = document.getElementById('bark-api-btn');
 const notificationSection = document.getElementById('notifications-section');
@@ -615,8 +620,14 @@ function startListeners() {
                     <span class="br-card-rating">⭐ ${ratingAvg > 0 ? ratingAvg + '/5' : 'Pas noté'}</span>
                     <span class="br-card-comments">💬 ${brData.commentCount || 0} commentaires</span>
                 </div>
+                <button class="br-card-comment-btn">Voir les commentaires</button>
             `;
             
+            li.querySelector('.br-card-comment-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                openBrDetail(brDoc.id, brData);
+            });
+
             li.addEventListener('click', () => openBrDetail(brDoc.id, brData));
             brFeedList.appendChild(li);
         });
@@ -637,7 +648,52 @@ function updateLeaderboard(usersData) {
     });
 
     const list = document.getElementById('leaderboard-list');
-    list.innerHTML = '';
+    if (list) list.innerHTML = '';
+
+    if (podiumPlaces) {
+        podiumPlaces.innerHTML = '';
+        for (let position = 1; position <= 3; position++) {
+            const user = usersData[position - 1];
+            const slot = document.createElement('div');
+            slot.className = 'podium-slot';
+            if (position === 1) slot.classList.add('podium-gold');
+            if (position === 2) slot.classList.add('podium-silver');
+            if (position === 3) slot.classList.add('podium-bronze');
+            slot.dataset.position = position;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar-small';
+            if (user && user.photoUrl) {
+                avatar.style.backgroundImage = `url(${user.photoUrl})`;
+            } else {
+                avatar.style.backgroundImage = 'none';
+                avatar.textContent = user ? user.name[0] : '';
+            }
+
+            const name = document.createElement('span');
+            name.textContent = user ? user.name : position === 1 ? '1er' : position === 2 ? '2e' : '3e';
+
+            const score = document.createElement('span');
+            score.style.fontSize = '0.8rem';
+            score.textContent = user ? `${user.weekly} BR` : '';
+
+            slot.appendChild(avatar);
+            slot.appendChild(name);
+            slot.appendChild(score);
+
+            if (user) {
+                slot.addEventListener('click', async () => {
+                    const userRef = doc(db, 'users', user.name);
+                    const userDoc = await getDoc(userRef);
+                    if (userDoc.exists()) {
+                        openMemberProfile(userDoc.data());
+                    }
+                });
+            }
+            podiumPlaces.appendChild(slot);
+        }
+    }
+
     usersData.forEach((u, index) => {
         const li = document.createElement('li');
         li.classList.add('leaderboard-item');
@@ -729,30 +785,33 @@ function addNotification(brData) {
 function setActiveTab(tab) {
     currentTab = tab;
 
-    if (navLeaderboard) navLeaderboard.style.display = 'none';
-    if (navBrFeed) navBrFeed.style.display = 'none';
+    // always hide all optional sections first
+    if (homePodium) homePodium.style.display = 'none';
+    if (leaderboardListSection) leaderboardListSection.style.display = 'none';
+    if (brTab) brTab.style.display = 'none';
     if (navHistory) navHistory.style.display = 'none';
-    if (navMainButton) navMainButton.style.display = 'none';
     if (notificationSection) notificationSection.style.display = 'none';
 
+    // main action button and score should always remain visible
+    if (navMainButton) navMainButton.style.display = 'block';
+
     if (tab === 'home') {
-        if (navLeaderboard) navLeaderboard.style.display = 'block';
-        if (navBrFeed) navBrFeed.style.display = 'block';
-        if (navHistory) navHistory.style.display = 'block';
-        if (navMainButton) navMainButton.style.display = 'block';
+        if (homePodium) homePodium.style.display = 'block';
     } else if (tab === 'leaderboard') {
-        if (navLeaderboard) navLeaderboard.style.display = 'block';
+        if (brTab) brTab.style.display = 'block';
     } else if (tab === 'notifications') {
         if (notificationSection) notificationSection.style.display = 'block';
         unreadNotificationCount = 0;
         updateNotificationBadge();
     } else if (tab === 'confrerie') {
-        if (navLeaderboard) navLeaderboard.style.display = 'block';
-        if (navBrFeed) navBrFeed.style.display = 'block';
-        if (navHistory) navHistory.style.display = 'block';
-        if (navMainButton) navMainButton.style.display = 'block';
+        if (homePodium) homePodium.style.display = 'block';
         loadConfrerieView();
         confrerieViewModalOverlay.style.display = 'flex';
+    }
+
+    // retour automatique à l'accueil quand on quitte un autre onglet (clic sur autre page personnelle)
+    if (tab !== 'home') {
+        window.addEventListener('blur', () => setActiveTab('home'), { once: true });
     }
 }
 
@@ -1133,6 +1192,13 @@ async function loadConfrerieView() {
 
 async function openMemberProfile(memberData) {
     document.getElementById('member-profile-name').textContent = `Profil de ${memberData.name}`;
+    document.getElementById('member-profile-title').textContent = memberData.name;
+    document.getElementById('member-profile-description').textContent = memberData.description || 'Pas de description.';
+
+    const userAvatarElem = document.getElementById('member-profile-avatar');
+    if (userAvatarElem) {
+        userAvatarElem.style.backgroundImage = memberData.photoUrl ? `url(${memberData.photoUrl})` : 'none';
+    }
 
     const brsRef = collection(db, "br");
     const q = query(brsRef, where("user", "==", memberData.name), orderBy("createdAt", "asc"));
@@ -1190,6 +1256,16 @@ async function openMemberProfile(memberData) {
             }
         }
     });
+
+    const weeklyBrEl = document.getElementById('member-profile-weekly-br');
+    const avgBrEl = document.getElementById('member-profile-avg-br');
+    if (weeklyBrEl) {
+        weeklyBrEl.textContent = `BR cette semaine : ${memberData.weeklyScore || 0}`;
+    }
+    const average = labels.length ? (data.reduce((sum, v) => sum + v, 0) / labels.length).toFixed(2) : '0.00';
+    if (avgBrEl) {
+        avgBrEl.textContent = `Moyenne BR/semaine : ${average}`;
+    }
 
     memberProfileModalOverlay.style.display = 'flex';
 }

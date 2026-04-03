@@ -68,14 +68,22 @@
                 <p id="joke-text">Prêt à gooner ?</p>
             </div>
 
-            <div class="leaderboard">
-                <h2>🏆 Classement de la semaine</h2>
-                <ul id="leaderboard-list">
-                    </ul>
+            <div id="home-podium" class="home-podium">
+                <h2>🏆 Podium de la semaine</h2>
+                <div id="podium-places" class="podium-places">
+                    <div class="podium-slot podium-silver" data-position="2" title="Deuxième">2</div>
+                    <div class="podium-slot podium-gold" data-position="1" title="Premier">1</div>
+                    <div class="podium-slot podium-bronze" data-position="3" title="Troisième">3</div>
+                </div>
             </div>
 
-            <div class="br-feed">
-                <h2>🔥 Dernières br</h2>
+            <div class="leaderboard" id="leaderboard-list-section" style="display:none;">
+                <h2>🏆 Classement détaillé</h2>
+                <ul id="leaderboard-list"></ul>
+            </div>
+
+            <div class="br-feed" id="br-tab" style="display:none;">
+                <h2>🔥 Feed BR (Cette semaine)</h2>
                 <ul id="br-feed-list"></ul>
             </div>
 
@@ -295,6 +303,17 @@
                         <button class="close-btn" id="close-member-profile-btn">?</button>
                     </div>
                     <div class="modal-content">
+                        <div class="member-profile-summary">
+                            <div id="member-profile-avatar" class="member-profile-avatar"></div>
+                            <div>
+                                <h3 id="member-profile-title"></h3>
+                                <p id="member-profile-description">Aucune description.</p>
+                                <div class="member-profile-stats">
+                                    <span id="member-profile-weekly-br">BR cette semaine : 0</span>
+                                    <span id="member-profile-avg-br">Moyenne BR/semaine : 0</span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="member-profile-chart-container">
                             <canvas id="member-br-chart"></canvas>
                         </div>
@@ -339,8 +358,8 @@
                 <span class="nav-text">Accueil</span>
             </button>
             <button class="nav-btn" data-target="leaderboard">
-                <span class="nav-icon">🏆</span>
-                <span class="nav-text">Classement</span>
+                <span class="nav-icon">🔥</span>
+                <span class="nav-text">BR</span>
             </button>
             <button class="nav-btn" data-target="notifications" id="notification-tab-btn">
                 <span class="nav-icon">🔔</span>
