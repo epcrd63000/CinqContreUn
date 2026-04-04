@@ -877,6 +877,33 @@ document.getElementById('submit-br-btn').addEventListener('click', async () => {
     // 🔥 Mettre à jour le streak
     await updateStreakOnNewBr(currentUser);
     
+    // ⚔️ Mettre à jour la progression des défis actifs
+    try {
+        const challengesQuery = query(collection(db, 'challenges'), where('active', '==', true));
+        const challengesDocs = await getDocs(challengesQuery);
+        
+        if (!challengesDocs.empty) {
+            const batch = writeBatch(db);
+            
+            challengesDocs.forEach(challengeDoc => {
+                const challengeData = challengeDoc.data();
+                
+                // Vérifier si l'utilisateur participe à ce défi
+                if (challengeData.participants && challengeData.participants[currentUser]) {
+                    // Incrémenter le score du BR pour cet utilisateur dans le défi
+                    batch.update(challengeDoc.ref, {
+                        [`participants.${currentUser}.br`]: increment(1)
+                    });
+                }
+            });
+            
+            await batch.commit();
+            console.log('%c📊 Défis mis à jour', 'color: #dac103; font-weight: bold;');
+        }
+    } catch (err) {
+        console.error('Erreur mise à jour défis:', err);
+    }
+    
     closeRatingModal();
 });
 
