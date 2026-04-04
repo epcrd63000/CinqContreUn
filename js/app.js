@@ -2244,9 +2244,7 @@ function switchChallengeTab(tabName) {
         tabBtn.classList.add('active');
     }
     
-    if (tabName === 'create-challenge') {
-        loadOpponentsForChallenge();
-    } else if (tabName === 'challenge-history') {
+    if (tabName === 'challenge-history') {
         loadChallengeHistory();
     }
 }
@@ -2269,11 +2267,14 @@ function loadActiveChallenges() {
         const card = document.createElement('div');
         card.className = 'challenge-card';
         const isCreator = challenge.creator === currentUser;
+        const userParticipantCount = Object.keys(challenge.participants).length;
+        
         card.innerHTML = `
             <div class="challenge-card-info">
                 <h4>${challenge.type === 'br-count' ? '🎯 Nombre de BR' : challenge.type === 'streak' ? '🔥 Streak' : '💰 Points'}</h4>
                 <p><strong>${challenge.title}</strong></p>
                 <p>Créé par: ${challenge.creator}</p>
+                <p>Participants: ${userParticipantCount} 👥</p>
                 <p>Finit le: ${new Date(challenge.endDate).toLocaleDateString()}</p>
                 <p>Récompense: 🏆 ${challenge.reward}</p>
                 <div class="challenge-card-progress">
@@ -2281,10 +2282,7 @@ function loadActiveChallenges() {
                 </div>
                 <p style="font-size: 0.8rem;">${Math.round(progress)}% - ${challenge.participants[currentUser]?.br || 0}/${challenge.target}</p>
             </div>
-            <div style="display: flex; gap: 8px;">
-                <button style="background: var(--primary-color); border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; flex: 1;">Participer</button>
-                ${isCreator ? `<button style="background: #8b0000; border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer;" onclick="deleteChallenge('${challenge.id}')">🗑️ Supprimer</button>` : ''}
-            </div>
+            ${isCreator ? `<div style="text-align: center;"><button style="background: #8b0000; border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; width: 100%;" onclick="deleteChallenge('${challenge.id}')">🗑️ Supprimer ce défi</button></div>` : ''}
         `;
         list.appendChild(card);
     });
@@ -2324,79 +2322,10 @@ function displayChallengesOnHome() {
     });
 }
 
+// Fonction obsolète - mantenue pour compatibilité mais non utilisée
+// Les défis sont maintenant créés avec TOUS les utilisateurs comme participants
 async function loadOpponentsForChallenge() {
-    const list = document.getElementById('challenge-opponents-list');
-    list.innerHTML = '<p style="color: var(--text-muted);">Chargement...</p>';
-    
-    if (!currentUser) {
-        list.innerHTML = '<p style="color: var(--text-muted);">Aucun utilisateur connecté.</p>';
-        return;
-    }
-    
-    try {
-        // Récupérer les données de l'utilisateur actuel
-        const userRef = doc(db, "users", currentUser);
-        const userSnap = await getDoc(userRef);
-        
-        if (!userSnap.exists()) {
-            list.innerHTML = '<p style="color: var(--text-muted);">Utilisateur non trouvé.</p>';
-            return;
-        }
-        
-        const userData = userSnap.data();
-        const confrerieId = userData.confrerieId;
-        
-        if (!confrerieId) {
-            list.innerHTML = '<p style="color: var(--text-muted);">Aucune confrérie assignée.</p>';
-            return;
-        }
-        
-        // Récupérer la confrérie
-        const confrerieRef = doc(db, "confreries", confrerieId);
-        const confrerieSnap = await getDoc(confrerieRef);
-        
-        if (!confrerieSnap.exists()) {
-            list.innerHTML = '<p style="color: var(--text-muted);">Confrérie non trouvée.</p>';
-            return;
-        }
-        
-        const confrerieData = confrerieSnap.data();
-        const memberIds = confrerieData.members || [];
-        
-        if (memberIds.length === 0) {
-            list.innerHTML = '<p style="color: var(--text-muted);">Aucun membre dans ta confrérie.</p>';
-            return;
-        }
-        
-        list.innerHTML = '';
-        
-        // Charger et afficher chaque membre
-        for (const memberId of memberIds) {
-            if (memberId === currentUser) continue; // Passer l'utilisateur actuel
-            
-            const memberRef = doc(db, "users", memberId);
-            const memberSnap = await getDoc(memberRef);
-            
-            if (memberSnap.exists()) {
-                const memberData = memberSnap.data();
-                const label = document.createElement('label');
-                label.className = 'opponent-checkbox';
-                label.innerHTML = `
-                    <input type="checkbox" value="${memberData.name}" />
-                    <span>${memberData.name}</span>
-                `;
-                list.appendChild(label);
-            }
-        }
-        
-        if (list.children.length === 0) {
-            list.innerHTML = '<p style="color: var(--text-muted);">Aucun adversaire dans ta confrérie.</p>';
-        }
-        
-    } catch (err) {
-        console.error('Erreur loadOpponentsForChallenge:', err);
-        list.innerHTML = '<p style="color: red;">Erreur lors du chargement des adversaires.</p>';
-    }
+    console.log('💡 Auto-participation activée: tous les utilisateurs participeront au défi');
 }
 
 function loadChallengeHistory() {
@@ -2440,11 +2369,15 @@ async function createChallenge() {
         return;
     }
     
-    const opponents = Array.from(document.querySelectorAll('.opponent-checkbox input:checked')).map(cb => cb.value);
-    
-    if (opponents.length === 0) {
-        alert('Sélectionne au moins un adversaire!');
-        return;
+    // Créer les participants avec TOUS les utilisateurs actifs
+    const participantsObj = {};
+    if (USERS && USERS.length > 0) {
+        USERS.forEach(user => {
+            participantsObj[user.name] = { user: user.name, br: 0 };
+        });
+    } else {
+        // Fallback: au moins l'utilisateur actuel
+        participantsObj[currentUser] = { user: currentUser, br: 0 };
     }
     
     const now = new Date();
@@ -2457,27 +2390,22 @@ async function createChallenge() {
         target: parseInt(target),
         reward,
         creator: currentUser,
-        opponents,
         startDate: now.toISOString(),
         endDate: endDate.toISOString(),
-        participants: {
-            [currentUser]: { user: currentUser, br: 0 },
-            ...opponents.reduce((acc, opp) => ({ ...acc, [opp]: { user: opp, br: 0 } }), {})
-        },
+        participants: participantsObj,
         active: true
     };
     
     try {
         // Sauvegarder dans Firebase
         await setDoc(doc(db, 'challenges', newChallenge.id), newChallenge);
-        alert('✅ Défi créé! Que le meilleur gagne! 🏆');
+        alert(`✅ Défi créé pour ${Object.keys(participantsObj).length} participants! 🏆`);
         
         // Reset form
         document.getElementById('challenge-type').value = 'br-count';
         document.getElementById('challenge-duration').value = '7';
         document.getElementById('challenge-target').value = '';
         document.getElementById('challenge-reward').value = '';
-        document.querySelectorAll('.opponent-checkbox input').forEach(cb => cb.checked = false);
         
         // Reload challenges
         loadActiveChallenges();
