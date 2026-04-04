@@ -2241,6 +2241,7 @@ function loadActiveChallenges() {
         const progress = (challenge.participants[currentUser]?.br || 0) / challenge.target * 100;
         const card = document.createElement('div');
         card.className = 'challenge-card';
+        const isCreator = challenge.creator === currentUser;
         card.innerHTML = `
             <div class="challenge-card-info">
                 <h4>${challenge.type === 'br-count' ? '🎯 Nombre de BR' : challenge.type === 'streak' ? '🔥 Streak' : '💰 Points'}</h4>
@@ -2253,7 +2254,10 @@ function loadActiveChallenges() {
                 </div>
                 <p style="font-size: 0.8rem;">${Math.round(progress)}% - ${challenge.participants[currentUser]?.br || 0}/${challenge.target}</p>
             </div>
-            <button style="background: var(--primary-color); border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer;">Participer</button>
+            <div style="display: flex; gap: 8px;">
+                <button style="background: var(--primary-color); border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; flex: 1;">Participer</button>
+                ${isCreator ? `<button style="background: #8b0000; border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer;" onclick="deleteChallenge('${challenge.id}')">🗑️ Supprimer</button>` : ''}
+            </div>
         `;
         list.appendChild(card);
     });
@@ -2381,6 +2385,21 @@ function loadChallengeHistory() {
     
     list.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Les défis terminés apparaissent ici.</p>';
     noHistory.style.display = 'none';
+}
+
+async function deleteChallenge(challengeId) {
+    if (!confirm('⚠️ Supprimer ce défi vraiment? Les progrès seront perdus.')) {
+        return;
+    }
+    
+    try {
+        await deleteDoc(doc(db, 'challenges', challengeId));
+        alert('✅ Défi supprimé!');
+        loadActiveChallenges();
+    } catch (err) {
+        console.error('Erreur suppression défi:', err);
+        alert('❌ Erreur lors de la suppression');
+    }
 }
 
 async function createChallenge() {
