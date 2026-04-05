@@ -101,7 +101,7 @@ header h1 { font-size: 1.5rem; }
 #main-btn {
     width: 180px; height: 180px; border-radius: 50%;
     background-size: 95%; background-repeat: no-repeat; background-position: center;
-    border: 3px solid #750808; color: white;
+    border: 5px solid #750808; color: white;
     box-shadow: 0 0 30px rgba(117, 8, 8, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;

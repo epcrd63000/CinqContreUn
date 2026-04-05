@@ -2246,6 +2246,8 @@ function switchChallengeTab(tabName) {
     
     if (tabName === 'challenge-history') {
         loadChallengeHistory();
+    } else if (tabName === 'challenge-progress') {
+        displayChallengeProgress();
     }
 }
 
@@ -2354,9 +2356,131 @@ async function deleteChallenge(challengeId) {
         loadActiveChallenges();
     } catch (err) {
         console.error('Erreur suppression défi:', err);
-        alert('❌ Erreur lors de la suppression');
+        alert('❌ Erreur: ' + err.message);
     }
 }
+
+function displayChallengeProgress() {
+    const container = document.getElementById('challenge-progress-container');
+    if (!container) {
+        console.warn('Container challenge-progress-container not found');
+        return;
+    }
+    
+    if (!window.challenges || window.challenges.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.innerHTML = '';
+    container.style.display = 'block';
+    
+    window.challenges.forEach(ch => {
+        const div = document.createElement('div');
+        div.style.margin = '15px 0';
+        div.style.padding = '15px';
+        div.style.background = 'var(--surface-color)';
+        div.style.borderRadius = '8px';
+        
+        const title = document.createElement('div');
+        title.style.fontWeight = 'bold';
+        title.style.marginBottom = '8px';
+        title.style.fontSize = '1rem';
+        title.innerText = `⚔️ ${ch.title} (Cible: ${ch.target})`;
+        div.appendChild(title);
+        
+        const track = document.createElement('div');
+        track.style.position = 'relative';
+        track.style.height = '35px';
+        track.style.background = '#000';
+        track.style.borderRadius = '6px';
+        track.style.overflow = 'hidden';
+        track.style.border = '2px solid var(--secondary-color)';
+        track.style.marginTop = '10px';
+        
+        // Finish line
+        const finish = document.createElement('div');
+        finish.style.position = 'absolute';
+        finish.style.right = '0';
+        finish.style.top = '0';
+        finish.style.height = '100%';
+        finish.style.width = '3px';
+        finish.style.background = '#00ff00';
+        track.appendChild(finish);
+        
+        // Participants as spermatozoids
+        if (ch.participants) {
+            Object.entries(ch.participants).forEach(([user, data]) => {
+                const pct = Math.min(((data.br || 0) / ch.target) * 100, 90);
+                const sperm = document.createElement('div');
+                sperm.style.position = 'absolute';
+                sperm.style.left = pct + '%';
+                sperm.style.top = '50%';
+                sperm.style.transform = 'translateY(-50%)';
+                sperm.style.width = '25px';
+                sperm.style.height = '25px';
+                sperm.style.background = 'gold';
+                sperm.style.borderRadius = '50%';
+                sperm.style.transition = 'left 0.3s ease-out';
+                sperm.style.display = 'flex';
+                sperm.style.alignItems = 'center';
+                sperm.style.justifyContent = 'center';
+                sperm.style.fontSize = '0.8rem';
+                sperm.style.fontWeight = 'bold';
+                sperm.title = `${user}: ${data.br || 0}/${ch.target}`;
+                sperm.innerText = 'o';
+                track.appendChild(sperm);
+            });
+        }
+        
+        div.appendChild(track);
+        
+        // Progress stats
+        const stats = document.createElement('div');
+        stats.style.marginTop = '8px';
+        stats.style.fontSize = '0.85rem';
+        stats.style.color = 'var(--text-muted)';
+        if (ch.participants) {
+            const particCount = Object.keys(ch.participants).length;
+            stats.innerText = `${particCount} participants • ${ch.startDate ? new Date(ch.startDate).toLocaleDateString('fr') : 'Date?'} → ${ch.endDate ? new Date(ch.endDate).toLocaleDateString('fr') : 'Date?'}`;
+        }
+        div.appendChild(stats);
+        
+        container.appendChild(div);
+    });
+}
+
+function setChallengeScope(scope) {
+    window.currentScope = scope || 'confrerie';
+    const confBtn = document.getElementById('challenge-scope-confr');
+    const globBtn = document.getElementById('challenge-scope-global');
+    
+    if (!confBtn || !globBtn) {
+        console.warn('Challenge scope buttons not found');
+        return;
+    }
+    
+    if (scope === 'confrerie') {
+        confBtn.style.background = 'var(--primary-color)';
+        confBtn.style.borderColor = 'var(--secondary-color)';
+        confBtn.style.color = 'white';
+        globBtn.style.background = 'var(--surface-color)';
+        globBtn.style.borderColor = '#333';
+        globBtn.style.color = 'var(--text-main)';
+    } else {
+        confBtn.style.background = 'var(--surface-color)';
+        confBtn.style.borderColor = '#333';
+        confBtn.style.color = 'var(--text-main)';
+        globBtn.style.background = 'var(--primary-color)';
+        globBtn.style.borderColor = 'var(--secondary-color)';
+        globBtn.style.color = 'white';
+    }
+}
+
+// Exposer les fonctions au global scope pour les onclick handlers HTML
+window.deleteChallenge = deleteChallenge;
+window.displayChallengeProgress = displayChallengeProgress;
+window.setChallengeScope = setChallengeScope;
 
 async function createChallenge() {
     const type = document.getElementById('challenge-type').value;
