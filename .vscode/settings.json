@@ -1,0 +1,6 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "\\nlet": true,
+        "git checkout": true
+    }
+}

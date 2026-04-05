@@ -368,8 +368,18 @@
                     <div class="modal-content">
                         <div class="challenges-tabs">
                             <button class="challenge-tab-btn active" data-tab="active-challenges">Défis actifs</button>
+                            <button class="challenge-tab-btn" data-tab="challenge-progress">📊 Progression</button>
                             <button class="challenge-tab-btn" data-tab="create-challenge">Créer un défi</button>
                             <button class="challenge-tab-btn" data-tab="challenge-history">Historique</button>
+                        </div>
+
+                        <!-- TAB: Progress Visualization -->
+                        <div id="tab-challenge-progress" class="challenge-tab-content">
+                            <h3>📊 Progression des défis</h3>
+                            <div id="challenge-progress-container" class="challenge-progress-container" style="max-height: 500px; overflow-y: auto;">
+                                <!-- Spermatozoid races will be injected here -->
+                            </div>
+                            <div id="no-progress" class="empty-state">Aucun défi actif à suivre.</div>
                         </div>
 
                         <!-- TAB: Active Challenges -->
@@ -402,11 +412,12 @@
                                 <label>Objectif:</label>
                                 <input type="number" id="challenge-target" placeholder="Exemple: 10 BR" min="1">
 
-                                <label>📢 Le défi sera lancé à:</label>
-                                <div style="background: var(--surface-color); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-                                    <p style="color: var(--secondary-color); font-weight: bold;">✅ Tous les utilisateurs de l'app</p>
-                                    <p style="font-size: 0.9rem; color: var(--text-muted);">Tout le monde pourra participer et comparer ses performances!</p>
+                                <label>🎯 Portée du défi:</label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                                    <button type="button" id="challenge-scope-confr" class="scope-btn active" onclick="setChallengeScope('confrerie')" style="background: var(--primary-color); border: 2px solid var(--secondary-color); color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">🏰 Confrérie</button>
+                                    <button type="button" id="challenge-scope-global" class="scope-btn" onclick="setChallengeScope('global')" style="background: var(--surface-color); border: 2px solid #333; color: var(--text-main); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">🌍 Global</button>
                                 </div>
+                                <p id="challenge-scope-note" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">⚠️ Global: tous les utilisateurs (en attente d'approbation admin).</p>
 
                                 <div class="challenge-reward">
                                     <label>🏆 Récompense pour le gagnant:</label>
@@ -474,6 +485,7 @@
     </div>
 
     <script type="module" src="js/app.js"></script>
+    <script src="js/challenges_ui.js" defer></script>
 </body>
 </html>
 
