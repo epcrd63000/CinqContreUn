@@ -2515,6 +2515,8 @@ function setChallengeScope(scope) {
     window.currentScope = scope || 'confrerie';
     const confBtn = document.getElementById('challenge-scope-confr');
     const globBtn = document.getElementById('challenge-scope-global');
+    const opponentSection = document.getElementById('opponent-selection-section');
+    const scopeNote = document.getElementById('challenge-scope-note');
     
     if (!confBtn || !globBtn) {
         console.warn('Challenge scope buttons not found');
@@ -2528,6 +2530,13 @@ function setChallengeScope(scope) {
         globBtn.style.background = 'var(--surface-color)';
         globBtn.style.borderColor = '#333';
         globBtn.style.color = 'var(--text-main)';
+        
+        // Afficher sélection adversaires
+        if (opponentSection) opponentSection.style.display = 'block';
+        if (scopeNote) scopeNote.innerHTML = '⚠️ Confrérie: Sélectionne tes adversaires pour le défi.';
+        
+        // Remplir la liste d'adversaires (tous les USERS sauf moi)
+        populateOpponentList();
     } else {
         confBtn.style.background = 'var(--surface-color)';
         confBtn.style.borderColor = '#333';
@@ -2535,6 +2544,62 @@ function setChallengeScope(scope) {
         globBtn.style.background = 'var(--primary-color)';
         globBtn.style.borderColor = 'var(--secondary-color)';
         globBtn.style.color = 'white';
+        
+        // Cacher sélection adversaires
+        if (opponentSection) opponentSection.style.display = 'none';
+        if (scopeNote) scopeNote.innerHTML = '⚠️ Global: tous les utilisateurs participant automatiquement (en attente d\'approbation admin).';
+        
+        // Vider la sélection
+        window.selectedOpponents = [];
+    }
+}
+
+function populateOpponentList() {
+    const opponentList = document.getElementById('opponent-list');
+    if (!opponentList || !window.USERS) return;
+    
+    opponentList.innerHTML = '';
+    window.selectedOpponents = [];
+    
+    window.USERS.forEach(userName => {
+        // Ne pas ajouter soi-même
+        if (userName === window.currentUser) return;
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `opponent-${userName}`;
+        checkbox.value = userName;
+        checkbox.style.marginRight = '6px';
+        checkbox.style.cursor = 'pointer';
+        
+        checkbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                if (!window.selectedOpponents.includes(userName)) {
+                    window.selectedOpponents.push(userName);
+                }
+            } else {
+                window.selectedOpponents = window.selectedOpponents.filter(u => u !== userName);
+            }
+            updateOpponentCount();
+        });
+        
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.cursor = 'pointer';
+        label.htmlFor = `opponent-${userName}`;
+        label.textContent = userName;
+        label.prepend(checkbox);
+        
+        opponentList.appendChild(label);
+    });
+}
+
+function updateOpponentCount() {
+    const countEl = document.getElementById('selected-opponents-count');
+    if (countEl) {
+        const count = window.selectedOpponents ? window.selectedOpponents.length : 0;
+        countEl.textContent = `${count} adversaire(s) sélectionné(s)`;
     }
 }
 
@@ -2570,26 +2635,49 @@ async function createChallenge() {
     
     console.log('✅ Validation réussie');
     
-    // Étape 3: Créer participants
+    // Définir le scope
+    const scope = window.currentScope || 'confrerie';
+    console.log(`🎯 Scope du défi: ${scope}`);
+    
+    // Validation spécifique au scope
+    if (scope === 'confrerie' && (!window.selectedOpponents || window.selectedOpponents.length === 0)) {
+        console.error('❌ Aucun adversaire sélectionné pour le défi confrérie');
+        alert('⚠️ Sélectionne au moins un adversaire pour le défi confrérie!');
+        return;
+    }
+    
+    // Étape 3: Créer participants selon le scope
     const participantsObj = {};
     let participantCount = 0;
     
-    if (window.USERS && Array.isArray(window.USERS) && window.USERS.length > 0) {
-        window.USERS.forEach(user => {
-            if (user && user.name) {
-                participantsObj[user.name] = { user: user.name, br: 0 };
-                participantCount++;
-            }
-        });
-        console.log(`✅ ${participantCount} participants ajoutés de USERS`);
+    if (scope === 'confrerie') {
+        // CONFRÉRIE: Ajouter le créateur + adversaires sélectionnés
+        participantsObj[window.currentUser] = { user: window.currentUser, br: 0 };
+        participantCount = 1;
+        
+        if (window.selectedOpponents && window.selectedOpponents.length > 0) {
+            window.selectedOpponents.forEach(opponentName => {
+                if (opponentName !== window.currentUser) {
+                    participantsObj[opponentName] = { user: opponentName, br: 0 };
+                    participantCount++;
+                }
+            });
+        }
+        console.log(`✅ Confrérie: ${participantCount} participants (créateur + ${window.selectedOpponents.length} adversaires)`);
     } else {
-        console.warn('⚠️ USERS vide ou invalide. Fallback sur currentUser');
-        if (window.currentUser) {
-            participantsObj[window.currentUser] = { user: window.currentUser, br: 0 };
-            participantCount = 1;
+        // GLOBAL: Ajouter tous les utilisateurs
+        if (window.USERS && Array.isArray(window.USERS) && window.USERS.length > 0) {
+            window.USERS.forEach(user => {
+                const userName = typeof user === 'string' ? user : (user && user.name ? user.name : null);
+                if (userName) {
+                    participantsObj[userName] = { user: userName, br: 0 };
+                    participantCount++;
+                }
+            });
+            console.log(`✅ Global: ${participantCount} participants (tous les utilisateurs)`);
         } else {
-            console.error('❌ currentUser est undefined!');
-            alert('❌ Erreur: utilisateur non identifié. Rafraichis la page.');
+            console.error('❌ Pas d\'utilisateurs disponibles pour défi global');
+            alert('❌ Erreur: Aucun utilisateur trouvé');
             return;
         }
     }
@@ -2615,6 +2703,8 @@ async function createChallenge() {
         target: parseInt(target),
         reward: reward || 'Mystérieux! 🎁',
         creator: window.currentUser,
+        scope: scope,  // 'confrerie' ou 'global'
+        status: scope === 'global' ? 'pending' : 'approved',  // global = en attente d'approval admin, confrérie = immédiatement approuvé
         startDate: now.toISOString(),
         endDate: endDate.toISOString(),
         participants: participantsObj,
@@ -2678,6 +2768,127 @@ async function createChallenge() {
     }
 }
 
+// ================================================
+// ADMIN: VALIDATION DES DÉFIS GLOBAUX
+// ================================================
+
+async function loadPendingChallenges() {
+    if (window.currentUser !== ADMIN_USER) {
+        console.warn('⚠️ Seul l\'admin peut valider les défis');
+        return;
+    }
+    
+    try {
+        const pendingQuery = query(
+            collection(db, 'challenges'),
+            where('status', '==', 'pending')
+        );
+        
+        const snapshot = await getDocs(pendingQuery);
+        const pendingChallenges = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        displayPendingChallenges(pendingChallenges);
+    } catch (err) {
+        console.error('❌ Erreur chargement défis en attente:', err.message);
+    }
+}
+
+function displayPendingChallenges(challenges) {
+    const listDiv = document.getElementById('pending-challenges-list');
+    const noneMsg = document.getElementById('no-pending-challenges');
+    
+    if (!listDiv) return;
+    
+    if (!challenges || challenges.length === 0) {
+        listDiv.style.display = 'none';
+        if (noneMsg) noneMsg.style.display = 'block';
+        return;
+    }
+    
+    listDiv.innerHTML = '';
+    noneMsg.style.display = 'none';
+    listDiv.style.display = 'grid';
+    
+    challenges.forEach(challenge => {
+        const card = document.createElement('div');
+        card.style.cssText = 'border: 2px solid #ff9900; border-radius: 8px; padding: 15px; background: var(--surface-color);';
+        
+        const participantCount = Object.keys(challenge.participants || {}).length;
+        
+        card.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: start;">
+                <div>
+                    <h4 style="margin: 0 0 8px 0; color: var(--primary-color);">⚔️ ${challenge.title}</h4>
+                    <p style="margin: 3px 0; font-size: 0.9rem;">
+                        <strong>Créateur:</strong> ${challenge.creator}<br>
+                        <strong>Portée:</strong> 🌍 Global<br>
+                        <strong>Participants:</strong> ${participantCount}<br>
+                        <strong>Type:</strong> ${challenge.type}<br>
+                        <strong>Récompense:</strong> ${challenge.reward}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-direction: column;">
+                    <button onclick="approveChallenge('${challenge.id}')" style="background: #00aa00; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">✅ Approuver</button>
+                    <button onclick="rejectChallenge('${challenge.id}')" style="background: #aa0000; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">❌ Rejeter</button>
+                </div>
+            </div>
+        `;
+        
+        listDiv.appendChild(card);
+    });
+}
+
+async function approveChallenge(challengeId) {
+    if (window.currentUser !== ADMIN_USER) {
+        alert('❌ Seul l\'admin peut approuver les défis');
+        return;
+    }
+    
+    try {
+        const challengeRef = doc(db, 'challenges', challengeId);
+        await updateDoc(challengeRef, { status: 'approved' });
+        console.log(`✅ Défi ${challengeId} approuvé`);
+        alert('✅ Défi approuvé!');
+        loadPendingChallenges();
+    } catch (err) {
+        console.error('❌ Erreur approbation:', err.message);
+        alert('❌ Erreur lors de l\'approbation');
+    }
+}
+
+async function rejectChallenge(challengeId) {
+    if (window.currentUser !== ADMIN_USER) {
+        alert('❌ Seul l\'admin peut rejeter les défis');
+        return;
+    }
+    
+    try {
+        const challengeRef = doc(db, 'challenges', challengeId);
+        await updateDoc(challengeRef, { status: 'rejected', active: false });
+        console.log(`❌ Défi ${challengeId} rejeté`);
+        alert('✅ Défi rejeté et désactivé');
+        loadPendingChallenges();
+    } catch (err) {
+        console.error('❌ Erreur rejet:', err.message);
+        alert('❌ Erreur lors du rejet');
+    }
+}
+
+// Charger les défis en attente quand on ouvre l'admin
+function hookAdminPanel() {
+    const adminBtn = document.getElementById('admin-btn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', () => {
+            if (window.currentUser === ADMIN_USER) {
+                setTimeout(() => loadPendingChallenges(), 100);
+            }
+        });
+    }
+}
+
 // Setup event listeners pour les défis
 if (challengesTabBtns) {
     challengesTabBtns.forEach(btn => {
@@ -2696,7 +2907,11 @@ if (createChallengeBtn) {
 }
 
 // Charger les défis en temps réel
-const challengesRef = query(collection(db, 'challenges'), where('active', '==', true));
+const challengesRef = query(
+    collection(db, 'challenges'),
+    where('active', '==', true),
+    where('status', '==', 'approved')
+);
 onSnapshot(challengesRef, (snapshot) => {
     challenges = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -2709,6 +2924,13 @@ onSnapshot(challengesRef, (snapshot) => {
         displayChallengesOnHome();
     }
 });
+
+// Initialiser la sélection d'adversaires
+window.selectedOpponents = [];
+window.currentScope = 'confrerie';
+
+// Initialiser le panel admin
+hookAdminPanel();
 
 // On startup, ensure home tab is active
 setActiveTab('home');
@@ -2723,3 +2945,6 @@ window.deleteChallenge = deleteChallenge;
 window.setChallengeScope = setChallengeScope;
 window.displayChallengeProgress = displayChallengeProgress;
 window.createChallenge = createChallenge;
+window.approveChallenge = approveChallenge;
+window.rejectChallenge = rejectChallenge;
+window.loadPendingChallenges = loadPendingChallenges;

@@ -191,6 +191,7 @@
                             <button class="admin-tab-btn active" data-tab="users">Utilisateurs</button>
                             <button class="admin-tab-btn" data-tab="codes">Codes d'accès</button>
                             <button class="admin-tab-btn" data-tab="confreries">Confréries</button>
+                            <button class="admin-tab-btn" data-tab="challenges">Validation Défis</button>
                             <button class="admin-tab-btn" data-tab="settings">Paramètres</button>
                         </div>
                         
@@ -209,6 +210,15 @@
                             <h3>Gestion des Confréries</h3>
                             <div class="confreries-admin-list" id="confreries-admin-list"></div>
                             <button id="add-confrerie-btn" style="margin-top: 10px;">+ Créer Confrérie</button>
+                        </div>
+
+                        <div id="tab-challenges" class="admin-tab-content">
+                            <h3>Validation des Défis Global 🌍</h3>
+                            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">Approuve ou rejette les défis globaux en attente.</p>
+                            <div id="pending-challenges-list" style="display: grid; grid-template-columns: 1fr; gap: 10px; max-height: 400px; overflow-y: auto;">
+                                <!-- Les défis en attente apparaissent ici -->
+                            </div>
+                            <p id="no-pending-challenges" style="text-align: center; color: var(--text-muted); padding: 20px;">✅ Aucun défi en attente de validation</p>
                         </div>
 
                         <div id="tab-settings" class="admin-tab-content">
@@ -418,6 +428,15 @@
                                     <button type="button" id="challenge-scope-global" class="scope-btn" onclick="setChallengeScope('global')" style="background: var(--surface-color); border: 2px solid #333; color: var(--text-main); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">🌍 Global</button>
                                 </div>
                                 <p id="challenge-scope-note" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">⚠️ Global: tous les utilisateurs (en attente d'approbation admin).</p>
+
+                                <!-- Sélection adversaires pour confrérie -->
+                                <div id="opponent-selection-section" style="margin-bottom: 15px;">
+                                    <label>👥 Sélectionne tes adversaires:</label>
+                                    <div id="opponent-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 150px; overflow-y: auto; border: 1px solid #333; padding: 10px; border-radius: 6px;">
+                                        <!-- Les adversaires apparaissent ici -->
+                                    </div>
+                                    <p id="selected-opponents-count" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">0 adversaire(s) sélectionné(s)</p>
+                                </div>
 
                                 <div class="challenge-reward">
                                     <label>🏆 Récompense pour le gagnant:</label>
