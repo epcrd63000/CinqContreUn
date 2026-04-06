@@ -1,0 +1,493 @@
+[info] %c🎯 Init texte motivant color: #dac103; font-weight: bold;
+[info] %c🧪 DÉMARRAGE BATTERIE DE TESTS DÉFIS color: #00ff00; font-size: 14px; font-weight: bold;
+[info] %c
+✨ BATTERIE DE TESTS CHARGÉE! color: #00ff00; font-weight: bold;
+[info] %cCommande: runAllTests() color: #ffff00; font-weight: bold;
+[info] %cCommande création avec logs: runAllTests.createChallenge() color: #ffff00; font-weight: bold;
+[info] %c🔍 DIAGNOSTIC RAPIDE DÉFIS color: #ff6600; font-size: 16px; font-weight: bold;
+[info] ============================================================
+[info] 
+1️⃣ UTILISATEUR:
+[info]    currentUser: Antime
+[info] 
+2️⃣ LISTE UTILISATEURS:
+[info]    USERS exists: true
+[info]    USERS count: 0
+[warning]    ⚠️ USERS vide! Cela pourrait causer des erreurs
+[info] 
+3️⃣ FIREBASE:
+[info]    db exists: true
+[info] 
+4️⃣ ÉLÉMENTS FORMULAIRE:
+[info]    ✅ #challenge-type
+[info]    ✅ #challenge-duration
+[info]    ✅ #challenge-target
+[info]    ✅ #challenge-reward
+[info]    ✅ #create-challenge-btn
+[info] 
+5️⃣ FONCTIONS:
+[info]    createChallenge: function
+[info]    deleteChallenge: function
+[info]    setChallengeScope: function
+[info]    displayChallengeProgress: function
+[info] 
+6️⃣ VALEURS FORMULAIRE ACTUELLES:
+[info]    Type: br-count
+[info]    Durée: 1
+[info]    Target: VIDE
+[info]    Reward: VIDE
+[error]    ❌ TARGET INVALIDE - La création sera bloquée!
+[info] 
+7️⃣ DÉFIS ACTUELS:
+[info]    challenges exists: true
+[info]    challenges count: 0
+[info] 
+============================================================
+[info] %c📋 RÉSUMÉ color: #00ff00; font-weight: bold;
+[info] %c❌ PROBLÈMES DÉTECTÉS: color: #ff0000; font-weight: bold;
+[info]    ⚠️ USERS vide
+[info]    ⚠️ Target field vide
+[info] 
+💡 PROCHAINE ÉTAPE:
+[info]    runAllTests.createChallenge()  ← Pour tester avec logs détaillés
+[info] 
+
+[info] %c📊 Défis chargés color: #dac103; font-weight: bold; 1
+[info] %c📡 Activation listener GLOBAL pour notifs temps-réel color: #00ff00; font-weight: bold; font-size: 14px;
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ Aucune notification, affichage message vide
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 0
+[info] ✅ Badge caché
+[info] ✅ Gagnants affichés [object Object]
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Léo
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 1
+[info] ✅ Badge affiché avec count: 1
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 1
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Léo s'est tiré sur la tige.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 2
+[info] ✅ Badge affiché avec count: 2
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 2
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est étouffé le perroquet.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 3
+[info] ✅ Badge affiché avec count: 3
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 3
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est tapé sur le champignon.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Étienne
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 4
+[info] ✅ Badge affiché avec count: 4
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 4
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Étienne s'est astiqué le manche à balai.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Léo
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 5
+[info] ✅ Badge affiché avec count: 5
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 5
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Léo s'est épluché la banane.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 6
+[info] ✅ Badge affiché avec count: 6
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 6
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est rincé le thermomètre.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 7
+[info] ✅ Badge affiché avec count: 7
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 7
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est astiqué le javelot.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Étienne
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 8
+[info] ✅ Badge affiché avec count: 8
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 8
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Étienne s'est frotté l'allumette.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Liam
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 9
+[info] ✅ Badge affiché avec count: 9
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 9
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Liam s'est astiqué le bambou.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Léo
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 10
+[info] ✅ Badge affiché avec count: 10
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 10
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Léo s'est lustré la carrosserie.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 11
+[info] ✅ Badge affiché avec count: 11
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 11
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est titillé le goujon.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 12
+[info] ✅ Badge affiché avec count: 12
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 12
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est poli le chinois.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Léo
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 13
+[info] ✅ Badge affiché avec count: 13
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 13
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Léo s'est tiré sur la tige.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Léo
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 14
+[info] ✅ Badge affiché avec count: 14
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 14
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Léo s'est secoué la flûte.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 15
+[info] ✅ Badge affiché avec count: 15
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 15
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est mouché le grand timonier.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Étienne
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 16
+[info] ✅ Badge affiché avec count: 16
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 16
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Étienne a fait chanter l'oiseau borgne.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 17
+[info] ✅ Badge affiché avec count: 17
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 17
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est tiré sur la tige.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Léo
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 18
+[info] ✅ Badge affiché avec count: 18
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 18
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Léo s'est secoué la canette.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Étienne
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 19
+[info] ✅ Badge affiché avec count: 19
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 19
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Étienne s'est astiqué le manche à balai.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Augustin
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 20
+[info] ✅ Badge affiché avec count: 20
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 20
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Augustin s'est dégourdi le petit Jésus.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Étienne
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 21
+[info] ✅ Badge affiché avec count: 21
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 21
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Étienne s'est brossé le manche.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] %c🔔 Nouvelle BR détectée pour notif: color: #00ff00; font-weight: bold; Léo
+[info] updateNotificationBadge appelé. Badge exist? true Unread count: 22
+[info] ✅ Badge affiché avec count: 22
+[info] renderNotifications appelé. notificationSection: true notificationList: true notificationEmpty: true
+[info] ✅ rendu notifications terminé, total: 22
+[info] 🔔 BARK FUNCTION STARTED - title: 💪 CinqContre1 - Nouvelle BR body: Léo a serré la main du chômeur.
+[info] %c🔔 BARK: Fonction appelée color: #e03d3d; font-weight: bold; font-size: 14px;
+[info] Utilisateur actuel: Antime
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Léo s'est tiré sur la tige.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est étouffé le perroquet.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est tapé sur le champignon.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Étienne s'est astiqué le manche à balai.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Léo s'est épluché la banane.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est rincé le thermomètre.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est astiqué le javelot.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Étienne s'est frotté l'allumette.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Liam s'est astiqué le bambou.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Léo s'est lustré la carrosserie.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est titillé le goujon.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est poli le chinois.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Léo s'est tiré sur la tige.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Léo s'est secoué la flûte.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est mouché le grand timonier.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Étienne a fait chanter l'oiseau borgne.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est tiré sur la tige.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Léo s'est secoué la canette.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Étienne s'est astiqué le manche à balai.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Augustin s'est dégourdi le petit Jésus.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Étienne s'est brossé le manche.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Données utilisateur: [object Object]
+[info] %c🚀 Envoi notification Bark color: green; font-weight: bold; font-size: 14px;
+[info] Title: 💪 CinqContre1 - Nouvelle BR
+[info] Body: Léo a serré la main du chômeur.
+[info] API Key (first 10 chars): dcz946fkyw***
+[info] URL: https://api.day.app/dcz946fkywb5xueh9FC9Wb
+[info] Payload: [object Object]
+[info] Response status: 200
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response status: 200
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response body: {"code":200,"message":"success","timestamp":1775469758}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] Response status: 200
+[info] Response body: {"code":200,"message":"success","timestamp":1775469759}
+[info] %c✅ Notification Bark envoyée avec succès color: green; font-weight: bold; font-size: 14px;
+[info] %c🗑️ SUPPRESSION DE DÉFI - DÉBUT color: #ff6600; font-size: 12px; font-weight: bold;
+[info]   ID à supprimer: challenge_1775469594700
+[info] ❌ Suppression annulée par l'utilisateur
+[info] %c📊 AFFICHAGE PROGRESSION - DÉBUT color: #00a8ff; font-size: 12px; font-weight: bold;
+[info] ✅ Container trouvé
+[info] 📊 Affichage 1 défi(s)
+[info]   Défi #1: "Défi: 10 BR" (5 participants)
+[info]     - Participant #1: Étienne = 0/10 (0.0%)
+[info]     - Participant #2: Liam = 0/10 (0.0%)
+[info]     - Participant #3: Léo = 0/10 (0.0%)
+[info]     - Participant #4: Augustin = 0/10 (0.0%)
+[info]     - Participant #5: Antime = 0/10 (0.0%)
+[info] %c✅ AFFICHAGE PROGRESSION - TERMINÉ color: #00ff00; font-size: 12px; font-weight: bold;
+[info] %c🗑️ SUPPRESSION DE DÉFI - DÉBUT color: #ff6600; font-size: 12px; font-weight: bold;
+[info]   ID à supprimer: challenge_1775469594700
+[info] ✅ Suppression confirmée par utilisateur
+[info] 💾 Envoi supprimer vers Firestore: challenges/challenge_1775469594700
+[info] %c📊 Défis chargés color: #dac103; font-weight: bold; 0
+[info] %c✅ DÉFI SUPPRIMÉ AVEC SUCCÈS! color: #00ff00; font-size: 14px; font-weight: bold;
+[info] 🔄 Rechargement de la liste...
+[info] %c🗑️ SUPPRESSION DE DÉFI - TERMINÉE ✅ color: #00ff00; font-size: 12px; font-weight: bold;
+[info] %c⚔️ CRÉATION DE DÉFI - DÉBUT color: #ff9900; font-size: 12px; font-weight: bold;
+[info] 📋 Valeurs du formulaire: [object Object]
+[info] ✅ Validation réussie
+[info] 🎯 Scope du défi: confrerie
+[info] ✅ Confrérie: 3 participants (créateur + 2 adversaires)
+[info] 📅 Dates: 2026-04-06T10:04:16.299Z → 2026-04-07T10:04:16.299Z (+1j)
+[info] 🎯 Objet défi construit: [object Object]
+[info] 💾 Envoi vers Firestore: challenges/challenge_1775469856299
+[info] %c📊 Défis chargés color: #dac103; font-weight: bold; 1
+[info] %c✅ DÉFI CRÉÉ AVEC SUCCÈS! color: #00ff00; font-size: 14px; font-weight: bold;
+[info]   ID: challenge_1775469856299
+[info]   Titre: Défi: 10 BR
+[info]   Participants: 3
+[info] 🔄 Rechargement de la liste...
+[info] %c⚔️ CRÉATION DE DÉFI - TERMINÉE ✅ color: #00ff00; font-size: 12px; font-weight: bold;

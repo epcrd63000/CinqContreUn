@@ -25,17 +25,10 @@ import {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Expose db to window for test suite and debugging
-window.db = db;
-
 const ADMIN_USER = "Étienne";
 let currentUser = localStorage.getItem('cinqContreUnUser');
 let USERS = [];
 let userPhotoByUser = {}; // pour afficher avatars dans commentaire
-
-// Expose global variables to window for test suite
-window.currentUser = currentUser;
-window.USERS = USERS;
 let ratings = { duration: 0, pleasure: 0, quality: 0 };
 let currentBrId = null;
 let editingConfrerieId = null;
@@ -239,8 +232,6 @@ let clickSound = null;
 
 // ⚔️ SYSTÈME DE DÉFIS
 let challenges = [];
-window.challenges = challenges; // Expose to window for test suite
-
 let challengeModalOverlay = document.getElementById('challenges-modal-overlay');
 let closeChallengesBtn = document.getElementById('close-challenges-btn');
 let createChallengeBtn = document.getElementById('create-challenge-btn');
@@ -535,7 +526,6 @@ async function init() {
             const userDoc = await getDoc(doc(db, "users", autoUser));
             if (userDoc.exists()) {
                 currentUser = autoUser;
-                window.currentUser = currentUser; // Keep window ref in sync
                 localStorage.setItem('cinqContreUnUser', currentUser);
             }
         }
@@ -546,7 +536,6 @@ async function init() {
     const usersSnap = await getDocs(collection(db, "users"));
     USERS = [];
     usersSnap.forEach(d => USERS.push(d.data().name));
-    window.USERS = USERS; // Keep window ref in sync
 
     if (currentUser && USERS.includes(currentUser)) {
         loginScreen.classList.remove('active');
@@ -599,7 +588,6 @@ async function loadLoginButtons() {
         });
         userGrid.appendChild(btn);
     });
-    window.USERS = USERS; // Keep window ref in sync
 }
 
 if (codeSubmit) {
@@ -625,7 +613,6 @@ if (codeSubmit) {
             return;
         }
         currentUser = pendingUser;
-        window.currentUser = currentUser; // Keep window ref in sync
         localStorage.setItem('cinqContreUnUser', currentUser);
         await setDoc(userRef, { name: currentUser }, { merge: true });
         await saveCurrentIpForUser(userRef);
@@ -638,7 +625,6 @@ if (codeSubmit) {
 logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('cinqContreUnUser');
     currentUser = null;
-    window.currentUser = currentUser; // Keep window ref in sync
     init();
 });
 
@@ -891,38 +877,23 @@ document.getElementById('submit-br-btn').addEventListener('click', async () => {
     // 🔥 Mettre à jour le streak
     await updateStreakOnNewBr(currentUser);
     
-    // ⚔️ Mettre à jour la progression des défis actifs
-    try {
-        const challengesQuery = query(
-            collection(db, 'challenges'), 
-            where('active', '==', true),
-            where('status', '==', 'approved')
-        );
-        const challengesDocs = await getDocs(challengesQuery);
-        
-        if (!challengesDocs.empty) {
-            const batch = writeBatch(db);
-            
-            challengesDocs.forEach(challengeDoc => {
-                const challengeData = challengeDoc.data();
-                
-                // Filtrer: l'utilisateur doit participer ET le défi doit être visible
-                const isVisible = filterChallengesForUser([challengeData], currentUser).length > 0;
-                
-                // Vérifier si l'utilisateur participe à ce défi
-                if (isVisible && challengeData.participants && challengeData.participants[currentUser]) {
-                    // Incrémenter le score du BR pour cet utilisateur dans le défi
-                    batch.update(challengeDoc.ref, {
-                        [`participants.${currentUser}.br`]: increment(1)
-                    });
-                }
-            });
-            
-            await batch.commit();
-            console.log('%c📊 Défis mis à jour', 'color: #dac103; font-weight: bold;');
-        }
-    } catch (err) {
-        console.error('Erreur mise à jour défis:', err);
+    // 🎯 Mettre à jour les défis actifs
+    const challengesRef = collection(db, "challenges");
+    const activeChallengesQuery = query(challengesRef, where("active", "==", true));
+    const challengesDocs = await getDocs(activeChallengesQuery);
+    
+    if (!challengesDocs.empty) {
+        const batch = writeBatch(db);
+        challengesDocs.forEach(challengeDoc => {
+            const challengeData = challengeDoc.data();
+            // Vérifier si l'utilisateur participe à ce défi
+            if (challengeData.participants && challengeData.participants[currentUser]) {
+                batch.update(challengeDoc.ref, {
+                    [`participants.${currentUser}.br`]: increment(1)
+                });
+            }
+        });
+        await batch.commit();
     }
     
     closeRatingModal();
@@ -1035,7 +1006,6 @@ function startListeners() {
             }
         });
         updateLeaderboard(usersData);
-        displayWinners(usersData); // Afficher les gagnants avec les données actuelles
     });
 
     onSnapshot(collection(db, "history"), (snapshot) => {
@@ -1319,6 +1289,7 @@ function setActiveTab(tab) {
     if (tab === 'home') {
         // Afficher le classement complet au lieu du podium
         if (leaderboardListSection) leaderboardListSection.style.display = 'block';
+        if (navHistory) navHistory.style.display = 'block';
         displayChallengesOnHome();
     } else if (tab === 'leaderboard') {
         // Masquer le button et les scores pour le tab BR
@@ -2218,7 +2189,7 @@ init();
 const bottomNav = document.getElementById('bottom-nav');
 const navLeaderboard = document.querySelector('.leaderboard');
 const navBrFeed = document.querySelector('.br-feed');
-const navHistory = document.getElementById('history-section');
+const navHistory = document.querySelector('.history');
 const navMainButton = document.querySelector('.button-container');
 
 if (bottomNav) {
@@ -2266,10 +2237,10 @@ function switchChallengeTab(tabName) {
         tabBtn.classList.add('active');
     }
     
-    if (tabName === 'challenge-history') {
+    if (tabName === 'create-challenge') {
+        loadOpponentsForChallenge();
+    } else if (tabName === 'challenge-history') {
         loadChallengeHistory();
-    } else if (tabName === 'challenge-progress') {
-        displayChallengeProgress();
     }
 }
 
@@ -2291,14 +2262,11 @@ function loadActiveChallenges() {
         const card = document.createElement('div');
         card.className = 'challenge-card';
         const isCreator = challenge.creator === currentUser;
-        const userParticipantCount = Object.keys(challenge.participants).length;
-        
         card.innerHTML = `
             <div class="challenge-card-info">
                 <h4>${challenge.type === 'br-count' ? '🎯 Nombre de BR' : challenge.type === 'streak' ? '🔥 Streak' : '💰 Points'}</h4>
                 <p><strong>${challenge.title}</strong></p>
                 <p>Créé par: ${challenge.creator}</p>
-                <p>Participants: ${userParticipantCount} 👥</p>
                 <p>Finit le: ${new Date(challenge.endDate).toLocaleDateString()}</p>
                 <p>Récompense: 🏆 ${challenge.reward}</p>
                 <div class="challenge-card-progress">
@@ -2306,78 +2274,13 @@ function loadActiveChallenges() {
                 </div>
                 <p style="font-size: 0.8rem;">${Math.round(progress)}% - ${challenge.participants[currentUser]?.br || 0}/${challenge.target}</p>
             </div>
-            ${isCreator ? `<div style="text-align: center;"><button style="background: #8b0000; border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; width: 100%;" onclick="deleteChallenge('${challenge.id}')">🗑️ Supprimer ce défi</button></div>` : ''}
+            <div style="display: flex; gap: 8px;">
+                <button style="background: var(--primary-color); border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; flex: 1;">Participer</button>
+                ${isCreator ? `<button style="background: #8b0000; border: none; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer;" onclick="deleteChallenge('${challenge.id}')">🗑️ Supprimer</button>` : ''}
+            </div>
         `;
         list.appendChild(card);
     });
-}
-
-// ================================================
-// AFFICHAGE WINNERS - GAGNANTS GLOBAL ET SEMAINE
-// ================================================
-
-function displayWinners(usersData) {
-    if (!usersData || usersData.length === 0) {
-        console.warn('⚠️ displayWinners: usersData vide');
-        return;
-    }
-    
-    // Vérifier que les éléments DOM existent
-    const globalNameEl = document.getElementById('global-winner-name');
-    const globalScoreEl = document.getElementById('global-winner-score');
-    const weeklyNameEl = document.getElementById('last-week-winner-name');
-    const weeklyScoreEl = document.getElementById('last-week-winner-score');
-    
-    if (!globalNameEl || !globalScoreEl || !weeklyNameEl || !weeklyScoreEl) {
-        console.error('❌ displayWinners: Éléments DOM manquants');
-        console.log('  global-winner-name:', globalNameEl);
-        console.log('  global-winner-score:', globalScoreEl);
-        console.log('  last-week-winner-name:', weeklyNameEl);
-        console.log('  last-week-winner-score:', weeklyScoreEl);
-        return;
-    }
-    
-    // Trier par score global (total)
-    const sortedByTotal = [...usersData].sort((a, b) => {
-        const totalA = a.total || 0;
-        const totalB = b.total || 0;
-        return totalB - totalA;
-    });
-    
-    // Trier par score weekly
-    const sortedByWeekly = [...usersData].sort((a, b) => {
-        const weeklyA = a.weekly || 0;
-        const weeklyB = b.weekly || 0;
-        return weeklyB - weeklyA;
-    });
-    
-    console.log('📊 displayWinners - Données reçues:', {
-        totalUsers: usersData.length,
-        topByTotal: sortedByTotal[0],
-        topByWeekly: sortedByWeekly[0]
-    });
-    
-    // Afficher le gagnant global
-    const globalWinner = sortedByTotal[0];
-    if (globalWinner) {
-        globalNameEl.textContent = globalWinner.name || 'N/A';
-        globalScoreEl.textContent = ` (${globalWinner.total || 0} pts)`;
-        console.log('✅ Gagnant Global:', globalWinner.name, globalWinner.total);
-    } else {
-        globalNameEl.textContent = 'Aucun';
-        globalScoreEl.textContent = ' (0 pts)';
-    }
-    
-    // Afficher le gagnant de la semaine
-    const weeklyWinner = sortedByWeekly[0];
-    if (weeklyWinner) {
-        weeklyNameEl.textContent = weeklyWinner.name || 'N/A';
-        weeklyScoreEl.textContent = ` (${weeklyWinner.weekly || 0} pts)`;
-        console.log('✅ Gagnant Semaine:', weeklyWinner.name, weeklyWinner.weekly);
-    } else {
-        weeklyNameEl.textContent = 'Aucun';
-        weeklyScoreEl.textContent = ' (0 pts)';
-    }
 }
 
 function displayChallengesOnHome() {
@@ -2414,10 +2317,79 @@ function displayChallengesOnHome() {
     });
 }
 
-// Fonction obsolète - mantenue pour compatibilité mais non utilisée
-// Les défis sont maintenant créés avec TOUS les utilisateurs comme participants
 async function loadOpponentsForChallenge() {
-    console.log('💡 Auto-participation activée: tous les utilisateurs participeront au défi');
+    const list = document.getElementById('challenge-opponents-list');
+    list.innerHTML = '<p style="color: var(--text-muted);">Chargement...</p>';
+    
+    if (!currentUser) {
+        list.innerHTML = '<p style="color: var(--text-muted);">Aucun utilisateur connecté.</p>';
+        return;
+    }
+    
+    try {
+        // Récupérer les données de l'utilisateur actuel
+        const userRef = doc(db, "users", currentUser);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Utilisateur non trouvé.</p>';
+            return;
+        }
+        
+        const userData = userSnap.data();
+        const confrerieId = userData.confrerieId;
+        
+        if (!confrerieId) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Aucune confrérie assignée.</p>';
+            return;
+        }
+        
+        // Récupérer la confrérie
+        const confrerieRef = doc(db, "confreries", confrerieId);
+        const confrerieSnap = await getDoc(confrerieRef);
+        
+        if (!confrerieSnap.exists()) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Confrérie non trouvée.</p>';
+            return;
+        }
+        
+        const confrerieData = confrerieSnap.data();
+        const memberIds = confrerieData.members || [];
+        
+        if (memberIds.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Aucun membre dans ta confrérie.</p>';
+            return;
+        }
+        
+        list.innerHTML = '';
+        
+        // Charger et afficher chaque membre
+        for (const memberId of memberIds) {
+            if (memberId === currentUser) continue; // Passer l'utilisateur actuel
+            
+            const memberRef = doc(db, "users", memberId);
+            const memberSnap = await getDoc(memberRef);
+            
+            if (memberSnap.exists()) {
+                const memberData = memberSnap.data();
+                const label = document.createElement('label');
+                label.className = 'opponent-checkbox';
+                label.innerHTML = `
+                    <input type="checkbox" value="${memberData.name}" />
+                    <span>${memberData.name}</span>
+                `;
+                list.appendChild(label);
+            }
+        }
+        
+        if (list.children.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-muted);">Aucun adversaire dans ta confrérie.</p>';
+        }
+        
+    } catch (err) {
+        console.error('Erreur loadOpponentsForChallenge:', err);
+        list.innerHTML = '<p style="color: red;">Erreur lors du chargement des adversaires.</p>';
+    }
 }
 
 function loadChallengeHistory() {
@@ -2436,532 +2408,76 @@ function loadChallengeHistory() {
 }
 
 async function deleteChallenge(challengeId) {
-    console.log('%c🗑️ SUPPRESSION DE DÉFI - DÉBUT', 'color: #ff6600; font-size: 12px; font-weight: bold;');
-    console.log(`  ID à supprimer: ${challengeId}`);
-    
     if (!confirm('⚠️ Supprimer ce défi vraiment? Les progrès seront perdus.')) {
-        console.log('❌ Suppression annulée par l\'utilisateur');
-        return;
-    }
-    
-    console.log('✅ Suppression confirmée par utilisateur');
-    
-    if (!window.db) {
-        console.error('❌ Firestore DB non disponible');
-        alert('❌ Erreur: Base de données non disponible');
         return;
     }
     
     try {
-        console.log(`💾 Envoi supprimer vers Firestore: challenges/${challengeId}`);
-        
         await deleteDoc(doc(db, 'challenges', challengeId));
-        
-        console.log('%c✅ DÉFI SUPPRIMÉ AVEC SUCCÈS!', 'color: #00ff00; font-size: 14px; font-weight: bold;');
-        
         alert('✅ Défi supprimé!');
-        
-        // Reload challenges
-        console.log('🔄 Rechargement de la liste...');
         loadActiveChallenges();
-        
-        console.log('%c🗑️ SUPPRESSION DE DÉFI - TERMINÉE ✅', 'color: #00ff00; font-size: 12px; font-weight: bold;');
-        
     } catch (err) {
-        console.error('%c❌ ERREUR SUPPRESSION DÉFI', 'color: #ff0000; font-size: 14px; font-weight: bold;');
-        console.error('Code:', err.code);
-        console.error('Message:', err.message);
-        console.error('Stack:', err.stack);
-        
-        let errorMsg = err.message;
-        if (err.code === 'permission-denied') {
-            errorMsg = 'Permission refusée. Vous pouvez être le créateur du défi.';
-        }
-        
-        alert(`❌ Erreur lors de la suppression:\n${errorMsg}`);
-    }
-}
-
-function displayChallengeProgress() {
-    console.log('%c📊 AFFICHAGE PROGRESSION - DÉBUT', 'color: #00a8ff; font-size: 12px; font-weight: bold;');
-    
-    const container = document.getElementById('challenge-progress-container');
-    if (!container) {
-        console.warn('⚠️ Container #challenge-progress-container non trouvé');
-        return;
-    }
-    
-    console.log('✅ Container trouvé');
-    
-    if (!window.challenges || window.challenges.length === 0) {
-        console.log('ℹ️ Pas de défis actifs');
-        container.style.display = 'none';
-        container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Aucun défi actif pour le moment.</p>';
-        return;
-    }
-    
-    console.log(`📊 Affichage ${window.challenges.length} défi(s)`);
-    
-    container.innerHTML = '';
-    container.style.display = 'block';
-    
-    window.challenges.forEach((ch, index) => {
-        console.log(`  Défi #${index + 1}: "${ch.title}" (${Object.keys(ch.participants || {}).length} participants)`);
-        
-        const div = document.createElement('div');
-        div.style.margin = '15px 0';
-        div.style.padding = '15px';
-        div.style.background = 'var(--surface-color)';
-        div.style.borderRadius = '8px';
-        
-        const title = document.createElement('div');
-        title.style.fontWeight = 'bold';
-        title.style.marginBottom = '8px';
-        title.style.fontSize = '1rem';
-        title.innerText = `⚔️ ${ch.title} (Cible: ${ch.target})`;
-        div.appendChild(title);
-        
-        const track = document.createElement('div');
-        track.style.position = 'relative';
-        track.style.height = '35px';
-        track.style.background = '#000';
-        track.style.borderRadius = '6px';
-        track.style.overflow = 'hidden';
-        track.style.border = '2px solid var(--secondary-color)';
-        track.style.marginTop = '10px';
-        
-        // Finish line
-        const finish = document.createElement('div');
-        finish.style.position = 'absolute';
-        finish.style.right = '0';
-        finish.style.top = '0';
-        finish.style.height = '100%';
-        finish.style.width = '3px';
-        finish.style.background = '#00ff00';
-        track.appendChild(finish);
-        
-        // Participants as spermatozoids
-        if (ch.participants) {
-            let participantNum = 0;
-            Object.entries(ch.participants).forEach(([user, data]) => {
-                participantNum++;
-                const pct = Math.min(((data.br || 0) / ch.target) * 100, 90);
-                const sperm = document.createElement('div');
-                sperm.style.position = 'absolute';
-                sperm.style.left = pct + '%';
-                sperm.style.top = '50%';
-                sperm.style.transform = 'translateY(-50%)';
-                sperm.style.width = '25px';
-                sperm.style.height = '25px';
-                sperm.style.background = 'gold';
-                sperm.style.borderRadius = '50%';
-                sperm.style.transition = 'left 0.3s ease-out';
-                sperm.style.display = 'flex';
-                sperm.style.alignItems = 'center';
-                sperm.style.justifyContent = 'center';
-                sperm.style.fontSize = '0.8rem';
-                sperm.style.fontWeight = 'bold';
-                sperm.title = `${user}: ${data.br || 0}/${ch.target}`;
-                sperm.innerText = 'o';
-                track.appendChild(sperm);
-                console.log(`    - Participant #${participantNum}: ${user} = ${data.br}/${ch.target} (${pct.toFixed(1)}%)`);
-            });
-        }
-        
-        div.appendChild(track);
-        
-        // Progress stats
-        const stats = document.createElement('div');
-        stats.style.marginTop = '8px';
-        stats.style.fontSize = '0.85rem';
-        stats.style.color = 'var(--text-muted)';
-        if (ch.participants) {
-            const particCount = Object.keys(ch.participants).length;
-            stats.innerText = `${particCount} participants • ${ch.startDate ? new Date(ch.startDate).toLocaleDateString('fr') : 'Date?'} → ${ch.endDate ? new Date(ch.endDate).toLocaleDateString('fr') : 'Date?'}`;
-        }
-        div.appendChild(stats);
-        
-        container.appendChild(div);
-    });
-    
-    console.log('%c✅ AFFICHAGE PROGRESSION - TERMINÉ', 'color: #00ff00; font-size: 12px; font-weight: bold;');
-}
-
-function setChallengeScope(scope) {
-    window.currentScope = scope || 'confrerie';
-    const confBtn = document.getElementById('challenge-scope-confr');
-    const globBtn = document.getElementById('challenge-scope-global');
-    const opponentSection = document.getElementById('opponent-selection-section');
-    const scopeNote = document.getElementById('challenge-scope-note');
-    
-    if (!confBtn || !globBtn) {
-        console.warn('Challenge scope buttons not found');
-        return;
-    }
-    
-    if (scope === 'confrerie') {
-        confBtn.style.background = 'var(--primary-color)';
-        confBtn.style.borderColor = 'var(--secondary-color)';
-        confBtn.style.color = 'white';
-        globBtn.style.background = 'var(--surface-color)';
-        globBtn.style.borderColor = '#333';
-        globBtn.style.color = 'var(--text-main)';
-        
-        // Afficher sélection adversaires
-        if (opponentSection) opponentSection.style.display = 'block';
-        if (scopeNote) scopeNote.innerHTML = '⚠️ Confrérie: Sélectionne tes adversaires pour le défi.';
-        
-        // Remplir la liste d'adversaires (tous les USERS sauf moi)
-        populateOpponentList();
-    } else {
-        confBtn.style.background = 'var(--surface-color)';
-        confBtn.style.borderColor = '#333';
-        confBtn.style.color = 'var(--text-main)';
-        globBtn.style.background = 'var(--primary-color)';
-        globBtn.style.borderColor = 'var(--secondary-color)';
-        globBtn.style.color = 'white';
-        
-        // Cacher sélection adversaires
-        if (opponentSection) opponentSection.style.display = 'none';
-        if (scopeNote) scopeNote.innerHTML = '⚠️ Global: tous les utilisateurs participant automatiquement (en attente d\'approbation admin).';
-        
-        // Vider la sélection
-        window.selectedOpponents = [];
-    }
-}
-
-function populateOpponentList() {
-    const opponentList = document.getElementById('opponent-list');
-    if (!opponentList || !window.USERS) return;
-    
-    opponentList.innerHTML = '';
-    window.selectedOpponents = [];
-    
-    window.USERS.forEach(userName => {
-        // Ne pas ajouter soi-même
-        if (userName === window.currentUser) return;
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `opponent-${userName}`;
-        checkbox.value = userName;
-        checkbox.style.marginRight = '6px';
-        checkbox.style.cursor = 'pointer';
-        
-        checkbox.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                if (!window.selectedOpponents.includes(userName)) {
-                    window.selectedOpponents.push(userName);
-                }
-            } else {
-                window.selectedOpponents = window.selectedOpponents.filter(u => u !== userName);
-            }
-            updateOpponentCount();
-        });
-        
-        const label = document.createElement('label');
-        label.style.display = 'flex';
-        label.style.alignItems = 'center';
-        label.style.cursor = 'pointer';
-        label.htmlFor = `opponent-${userName}`;
-        label.textContent = userName;
-        label.prepend(checkbox);
-        
-        opponentList.appendChild(label);
-    });
-}
-
-function updateOpponentCount() {
-    const countEl = document.getElementById('selected-opponents-count');
-    if (countEl) {
-        const count = window.selectedOpponents ? window.selectedOpponents.length : 0;
-        countEl.textContent = `${count} adversaire(s) sélectionné(s)`;
+        console.error('Erreur suppression défi:', err);
+        alert('❌ Erreur lors de la suppression');
     }
 }
 
 async function createChallenge() {
-    console.log('%c⚔️ CRÉATION DE DÉFI - DÉBUT', 'color: #ff9900; font-size: 12px; font-weight: bold;');
+    const type = document.getElementById('challenge-type').value;
+    const duration = document.getElementById('challenge-duration').value;
+    const target = document.getElementById('challenge-target').value;
+    const reward = document.getElementById('challenge-reward').value;
     
-    // Étape 1: Récupérer les valeurs
-    const type = document.getElementById('challenge-type')?.value;
-    const duration = document.getElementById('challenge-duration')?.value;
-    const target = document.getElementById('challenge-target')?.value;
-    const reward = document.getElementById('challenge-reward')?.value;
-    
-    console.log('📋 Valeurs du formulaire:', { type, duration, target, reward });
-    
-    // Étape 2: Validation
-    if (!target || parseInt(target) < 1) {
-        console.error('❌ Validation échouée: target invalide');
-        alert('⚠️ Entre un objectif valide (nombre > 0)!');
+    if (!target || target < 1) {
+        alert('Entre un objectif valide!');
         return;
     }
     
-    if (!type) {
-        console.error('❌ Validation échouée: type manquant');
-        alert('⚠️ Sélectionne un type de défi!');
+    const opponents = Array.from(document.querySelectorAll('.opponent-checkbox input:checked')).map(cb => cb.value);
+    
+    if (opponents.length === 0) {
+        alert('Sélectionne au moins un adversaire!');
         return;
     }
     
-    if (!duration) {
-        console.error('❌ Validation échouée: durée manquante');
-        alert('⚠️ Sélectionne une durée!');
-        return;
-    }
-    
-    console.log('✅ Validation réussie');
-    
-    // Définir le scope
-    const scope = window.currentScope || 'confrerie';
-    console.log(`🎯 Scope du défi: ${scope}`);
-    
-    // Validation spécifique au scope
-    if (scope === 'confrerie' && (!window.selectedOpponents || window.selectedOpponents.length === 0)) {
-        console.error('❌ Aucun adversaire sélectionné pour le défi confrérie');
-        alert('⚠️ Sélectionne au moins un adversaire pour le défi confrérie!');
-        return;
-    }
-    
-    // Étape 3: Créer participants selon le scope
-    const participantsObj = {};
-    let participantCount = 0;
-    
-    if (scope === 'confrerie') {
-        // CONFRÉRIE: Ajouter le créateur + adversaires sélectionnés
-        participantsObj[window.currentUser] = { user: window.currentUser, br: 0 };
-        participantCount = 1;
-        
-        if (window.selectedOpponents && window.selectedOpponents.length > 0) {
-            window.selectedOpponents.forEach(opponentName => {
-                if (opponentName !== window.currentUser) {
-                    participantsObj[opponentName] = { user: opponentName, br: 0 };
-                    participantCount++;
-                }
-            });
-        }
-        console.log(`✅ Confrérie: ${participantCount} participants (créateur + ${window.selectedOpponents.length} adversaires)`);
-    } else {
-        // GLOBAL: Ajouter tous les utilisateurs
-        if (window.USERS && Array.isArray(window.USERS) && window.USERS.length > 0) {
-            window.USERS.forEach(user => {
-                const userName = typeof user === 'string' ? user : (user && user.name ? user.name : null);
-                if (userName) {
-                    participantsObj[userName] = { user: userName, br: 0 };
-                    participantCount++;
-                }
-            });
-            console.log(`✅ Global: ${participantCount} participants (tous les utilisateurs)`);
-        } else {
-            console.error('❌ Pas d\'utilisateurs disponibles pour défi global');
-            alert('❌ Erreur: Aucun utilisateur trouvé');
-            return;
-        }
-    }
-    
-    if (participantCount === 0) {
-        console.error('❌ Aucun participant ajouté');
-        alert('❌ Impossible d\'ajouter des participants');
-        return;
-    }
-    
-    // Étape 4: Créer dates
     const now = new Date();
-    const durationDays = parseInt(duration);
-    const endDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+    const endDate = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
     
-    console.log(`📅 Dates: ${now.toISOString()} → ${endDate.toISOString()} (+${durationDays}j)`);
-    
-    // Étape 5: Construire l'objet défi
     const newChallenge = {
         id: `challenge_${Date.now()}`,
-        type: type,
+        type,
         title: `Défi: ${target} ${type === 'br-count' ? 'BR' : type === 'streak' ? 'jours' : 'points'}`,
         target: parseInt(target),
-        reward: reward || 'Mystérieux! 🎁',
-        creator: window.currentUser,
-        scope: scope,  // 'confrerie' ou 'global'
-        status: scope === 'global' ? 'pending' : 'approved',  // global = en attente d'approval admin, confrérie = immédiatement approuvé
+        reward,
+        creator: currentUser,
+        opponents,
         startDate: now.toISOString(),
         endDate: endDate.toISOString(),
-        participants: participantsObj,
-        active: true,
-        createdAt: now.toISOString()
+        participants: {
+            [currentUser]: { user: currentUser, br: 0 },
+            ...opponents.reduce((acc, opp) => ({ ...acc, [opp]: { user: opp, br: 0 } }), {})
+        },
+        active: true
     };
     
-    console.log('🎯 Objet défi construit:', newChallenge);
-    
-    // Étape 6: Vérifier Firestore
-    if (!window.db) {
-        console.error('❌ Firestore DB non disponible');
-        alert('❌ Erreur: Base de données non disponible');
-        return;
-    }
-    
-    // Étape 7: Sauvegarder
     try {
-        console.log(`💾 Envoi vers Firestore: challenges/${newChallenge.id}`);
-        
+        // Sauvegarder dans Firebase
         await setDoc(doc(db, 'challenges', newChallenge.id), newChallenge);
-        
-        console.log('%c✅ DÉFI CRÉÉ AVEC SUCCÈS!', 'color: #00ff00; font-size: 14px; font-weight: bold;');
-        console.log(`  ID: ${newChallenge.id}`);
-        console.log(`  Titre: ${newChallenge.title}`);
-        console.log(`  Participants: ${participantCount}`);
-        
-        alert(`✅ Défi créé pour ${participantCount} participants! 🏆\n\n"${newChallenge.title}"`);
+        alert('✅ Défi créé! Que le meilleur gagne! 🏆');
         
         // Reset form
         document.getElementById('challenge-type').value = 'br-count';
         document.getElementById('challenge-duration').value = '7';
         document.getElementById('challenge-target').value = '';
         document.getElementById('challenge-reward').value = '';
-        
-        console.log('🔄 Rechargement de la liste...');
+        document.querySelectorAll('.opponent-checkbox input').forEach(cb => cb.checked = false);
         
         // Reload challenges
         loadActiveChallenges();
         switchChallengeTab('active-challenges');
-        
-        console.log('%c⚔️ CRÉATION DE DÉFI - TERMINÉE ✅', 'color: #00ff00; font-size: 12px; font-weight: bold;');
-        
     } catch (err) {
-        console.error('%c❌ ERREUR CRÉATION DÉFI', 'color: #ff0000; font-size: 14px; font-weight: bold;');
-        console.error('Code:', err.code);
-        console.error('Message:', err.message);
-        console.error('Stack:', err.stack);
-        
-        // Traiter les erreurs spécifiques
-        let errorMsg = err.message;
-        if (err.code === 'permission-denied') {
-            errorMsg = 'Permission refusée par Firestore. Vérifier les règles de sécurité.';
-        } else if (err.code === 'unauthenticated') {
-            errorMsg = 'Non authentifié. Identifiez-vous d\'abord.';
-        } else if (err.code === 'failed-precondition') {
-            errorMsg = 'Firestore pas initialisé correctement.';
-        }
-        
-        alert(`❌ Erreur lors de la création du défi:\n\n${errorMsg}`);
-    }
-}
-
-// ================================================
-// ADMIN: VALIDATION DES DÉFIS GLOBAUX
-// ================================================
-
-async function loadPendingChallenges() {
-    if (window.currentUser !== ADMIN_USER) {
-        console.warn('⚠️ Seul l\'admin peut valider les défis');
-        return;
-    }
-    
-    try {
-        const pendingQuery = query(
-            collection(db, 'challenges'),
-            where('status', '==', 'pending')
-        );
-        
-        const snapshot = await getDocs(pendingQuery);
-        const pendingChallenges = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        displayPendingChallenges(pendingChallenges);
-    } catch (err) {
-        console.error('❌ Erreur chargement défis en attente:', err.message);
-    }
-}
-
-function displayPendingChallenges(challenges) {
-    const listDiv = document.getElementById('pending-challenges-list');
-    const noneMsg = document.getElementById('no-pending-challenges');
-    
-    if (!listDiv) return;
-    
-    if (!challenges || challenges.length === 0) {
-        listDiv.style.display = 'none';
-        if (noneMsg) noneMsg.style.display = 'block';
-        return;
-    }
-    
-    listDiv.innerHTML = '';
-    noneMsg.style.display = 'none';
-    listDiv.style.display = 'grid';
-    
-    challenges.forEach(challenge => {
-        const card = document.createElement('div');
-        card.style.cssText = 'border: 2px solid #ff9900; border-radius: 8px; padding: 15px; background: var(--surface-color);';
-        
-        const participantCount = Object.keys(challenge.participants || {}).length;
-        
-        card.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: start;">
-                <div>
-                    <h4 style="margin: 0 0 8px 0; color: var(--primary-color);">⚔️ ${challenge.title}</h4>
-                    <p style="margin: 3px 0; font-size: 0.9rem;">
-                        <strong>Créateur:</strong> ${challenge.creator}<br>
-                        <strong>Portée:</strong> ${challenge.scope === 'global' ? '🌍 Global' : '🏰 Confrérie'}<br>
-                        <strong>Participants:</strong> ${participantCount}<br>
-                        <strong>Type:</strong> ${challenge.type}<br>
-                        <strong>Récompense:</strong> ${challenge.reward}
-                    </p>
-                </div>
-                <div style="display: flex; gap: 8px; flex-direction: column;">
-                    <button onclick="approveChallenge('${challenge.id}')" style="background: #00aa00; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">✅ Approuver</button>
-                    <button onclick="rejectChallenge('${challenge.id}')" style="background: #aa0000; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">❌ Rejeter</button>
-                </div>
-            </div>
-        `;
-        
-        listDiv.appendChild(card);
-    });
-}
-
-async function approveChallenge(challengeId) {
-    if (window.currentUser !== ADMIN_USER) {
-        alert('❌ Seul l\'admin peut approuver les défis');
-        return;
-    }
-    
-    try {
-        const challengeRef = doc(db, 'challenges', challengeId);
-        await updateDoc(challengeRef, { status: 'approved' });
-        console.log(`✅ Défi ${challengeId} approuvé`);
-        alert('✅ Défi approuvé!');
-        loadPendingChallenges();
-    } catch (err) {
-        console.error('❌ Erreur approbation:', err.message);
-        alert('❌ Erreur lors de l\'approbation');
-    }
-}
-
-async function rejectChallenge(challengeId) {
-    if (window.currentUser !== ADMIN_USER) {
-        alert('❌ Seul l\'admin peut rejeter les défis');
-        return;
-    }
-    
-    try {
-        const challengeRef = doc(db, 'challenges', challengeId);
-        await updateDoc(challengeRef, { status: 'rejected', active: false });
-        console.log(`❌ Défi ${challengeId} rejeté`);
-        alert('✅ Défi rejeté et désactivé');
-        loadPendingChallenges();
-    } catch (err) {
-        console.error('❌ Erreur rejet:', err.message);
-        alert('❌ Erreur lors du rejet');
-    }
-}
-
-// Charger les défis en attente quand on ouvre l'admin
-function hookAdminPanel() {
-    const adminBtn = document.getElementById('admin-btn');
-    if (adminBtn) {
-        adminBtn.addEventListener('click', () => {
-            if (window.currentUser === ADMIN_USER) {
-                setTimeout(() => loadPendingChallenges(), 100);
-            }
-        });
+        console.error('Erreur création défi:', err);
+        alert('❌ Erreur lors de la création du défi');
     }
 }
 
@@ -2982,65 +2498,22 @@ if (createChallengeBtn) {
     createChallengeBtn.addEventListener('click', createChallenge);
 }
 
-// Filtre les défis selon leur portée et participation
-function filterChallengesForUser(allChallenges, userId) {
-    return allChallenges.filter(challenge => {
-        // Les défis globaux sont toujours visibles
-        if (challenge.scope === 'global') {
-            return true;
-        }
-        // Les défis de confrérie ne sont visibles que par les participants
-        if (challenge.scope === 'confrerie') {
-            return challenge.participants && challenge.participants[userId];
-        }
-        // Pour la rétrocompatibilité, afficher les anciens défis sans scope
-        return true;
-    });
-}
-
 // Charger les défis en temps réel
-const challengesRef = query(
-    collection(db, 'challenges'),
-    where('active', '==', true),
-    where('status', '==', 'approved')
-);
+const challengesRef = query(collection(db, 'challenges'), where('active', '==', true));
 onSnapshot(challengesRef, (snapshot) => {
-    const allChallenges = snapshot.docs.map(doc => ({
+    challenges = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
-    
-    // Filtrer les défis selon le scope et la participation
-    challenges = filterChallengesForUser(allChallenges, currentUser);
-    window.challenges = challenges; // Keep window ref in sync
-    console.log('%c📊 Défis chargés', 'color: #dac103; font-weight: bold;', `${challenges.length}/${allChallenges.length}`);
+    console.log('%c📊 Défis chargés', 'color: #dac103; font-weight: bold;', challenges.length);
     // Rafraîchir l'affichage sur l'accueil
     if (currentTab === 'home') {
         displayChallengesOnHome();
     }
 });
 
-// Initialiser la sélection d'adversaires
-window.selectedOpponents = [];
-window.currentScope = 'confrerie';
-
-// Initialiser le panel admin
-hookAdminPanel();
-
 // On startup, ensure home tab is active
 setActiveTab('home');
 
 // 🎯 INITIALISER LE SYSTÈME MOTIVANT
 initMotivationalText();
-
-// ================================================
-// EXPOSE FUNCTIONS TO WINDOW FOR TEST SUITE
-// ================================================
-window.deleteChallenge = deleteChallenge;
-window.setChallengeScope = setChallengeScope;
-window.displayChallengeProgress = displayChallengeProgress;
-window.createChallenge = createChallenge;
-window.approveChallenge = approveChallenge;
-window.rejectChallenge = rejectChallenge;
-window.loadPendingChallenges = loadPendingChallenges;
-window.displayWinners = displayWinners;
