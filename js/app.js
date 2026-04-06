@@ -2218,7 +2218,7 @@ init();
 const bottomNav = document.getElementById('bottom-nav');
 const navLeaderboard = document.querySelector('.leaderboard');
 const navBrFeed = document.querySelector('.br-feed');
-const navHistory = document.querySelector('.history');
+const navHistory = document.getElementById('history-section');
 const navMainButton = document.querySelector('.button-container');
 
 if (bottomNav) {

@@ -98,16 +98,42 @@ header h1 { font-size: 1.5rem; }
 .score-box.highlight strong { color: var(--secondary-color); }
 
 .button-container { text-align: center; margin-bottom: 40px; position: relative; }
+
+@keyframes epicButtonPulse {
+    0% {
+        box-shadow: 0 0 30px rgba(117, 8, 8, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.1);
+        border-color: var(--primary-color);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 50px rgba(218, 193, 3, 0.5), 0 0 20px rgba(117, 8, 8, 0.8), inset 0 0 25px rgba(218, 193, 3, 0.3);
+        border-color: var(--secondary-color);
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 0 30px rgba(117, 8, 8, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.1);
+        border-color: var(--primary-color);
+        transform: scale(1);
+    }
+}
+
 #main-btn {
     width: 180px; height: 180px; border-radius: 50%;
     background-size: 95%; background-repeat: no-repeat; background-position: center;
     border: 5px solid #750808; color: #750808;
     box-shadow: 0 0 30px rgba(117, 8, 8, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease; /* cette ligne sert a animer le bouton si on veut quelquechose de plus épique il faut rajouter une animation keyframe */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
+    animation: epicButtonPulse 2.5s infinite ease-in-out;
 }
-#main-btn:hover { transform: scale(1.00); box-shadow: 0 0 40px rgba(117, 8, 8, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.15); }
-#main-btn:active { transform: scale(1.00); }
+#main-btn:hover { 
+    transform: scale(1.15); 
+    filter: brightness(1.2); 
+    animation-play-state: paused; 
+    box-shadow: 0 0 60px rgba(218, 193, 3, 0.8), inset 0 0 30px rgba(255, 255, 255, 0.4); 
+    border-color: var(--secondary-color); 
+}
+#main-btn:active { transform: scale(0.9); filter: brightness(0.8); box-shadow: 0 0 15px rgba(117, 8, 8, 0.8), inset 0 0 20px rgba(0, 0, 0, 0.8); transition: all 0.1s ease; }
 
 #joke-text { margin-top: 20px; font-style: italic; color: var(--text-muted); min-height: 24px; }
 
@@ -1420,4 +1446,3 @@ main {
     height: 100%;
     background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
 }
-
