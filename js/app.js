@@ -1028,6 +1028,7 @@ function startListeners() {
             }
         });
         updateLeaderboard(usersData);
+        displayWinners(usersData); // Afficher les gagnants avec les données actuelles
     });
 
     onSnapshot(collection(db, "history"), (snapshot) => {
@@ -2304,6 +2305,47 @@ function loadActiveChallenges() {
     });
 }
 
+// ================================================
+// AFFICHAGE WINNERS - GAGNANTS GLOBAL ET SEMAINE
+// ================================================
+
+function displayWinners(usersData) {
+    if (!usersData || usersData.length === 0) return;
+    
+    // Trier par score global (total)
+    const sortedByTotal = [...usersData].sort((a, b) => {
+        const totalA = a.total || 0;
+        const totalB = b.total || 0;
+        return totalB - totalA;
+    });
+    
+    // Trier par score weekly
+    const sortedByWeekly = [...usersData].sort((a, b) => {
+        const weeklyA = a.weekly || 0;
+        const weeklyB = b.weekly || 0;
+        return weeklyB - weeklyA;
+    });
+    
+    // Afficher les gagnants
+    const globalWinner = sortedByTotal[0];
+    const weeklyWinner = sortedByWeekly[0];
+    
+    if (globalWinner) {
+        document.getElementById('global-winner-name').textContent = globalWinner.name;
+        document.getElementById('global-winner-score').textContent = ` (${globalWinner.total || 0} pts)`;
+    }
+    
+    if (weeklyWinner) {
+        document.getElementById('last-week-winner-name').textContent = weeklyWinner.name;
+        document.getElementById('last-week-winner-score').textContent = ` (${weeklyWinner.weekly || 0} pts)`;
+    }
+    
+    console.log('✅ Gagnants affichés', { 
+        globalWinner: globalWinner?.name, 
+        weeklyWinner: weeklyWinner?.name 
+    });
+}
+
 function displayChallengesOnHome() {
     const homeSection = document.getElementById('active-challenges-home');
     const listDiv = document.getElementById('home-challenges-list');
@@ -2948,3 +2990,4 @@ window.createChallenge = createChallenge;
 window.approveChallenge = approveChallenge;
 window.rejectChallenge = rejectChallenge;
 window.loadPendingChallenges = loadPendingChallenges;
+window.displayWinners = displayWinners;
