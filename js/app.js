@@ -981,7 +981,8 @@ function startListeners() {
                 lastUpdate: data.lastWeeklyScoreUpdate || null,
                 currentStreak: data.currentStreak || 0,
                 maxStreak: data.maxStreak || 0,
-                lastBrDate: data.lastBrDate || null
+                lastBrDate: data.lastBrDate || null,
+                confrerieId: data.confrerieId || null
             });
             userPhotoByUser[data.name] = data.photoUrl || null;
             if (data.name === currentUser) {
@@ -1118,9 +1119,112 @@ function updateLeaderboard(usersData) {
     const list = document.getElementById('leaderboard-list');
     if (list) list.innerHTML = '';
 
-    // Masquer le podium et afficher un classement complet
+    // Afficher le podium avec les détails des joueurs
     if (podiumPlaces) {
         podiumPlaces.innerHTML = '';
+        
+        const topUsers = usersData.slice(0, 3);
+        const positions = [
+            { idx: 1, class: 'podium-silver', pos: 2, label: 'Deuxième' },
+            { idx: 0, class: 'podium-gold', pos: 1, label: 'Premier' },
+            { idx: 2, class: 'podium-bronze', pos: 3, label: 'Troisième' }
+        ];
+
+        positions.forEach(p => {
+            const u = topUsers[p.idx];
+            if (u && u.weekly > 0) {
+                const confName = u.confrerieId ? u.confrerieId.replace(/-/g, ' ') : 'Aucune';
+                const confDisplay = confName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                
+                const slot = document.createElement('div');
+                slot.className = `podium-slot ${p.class}`;
+                slot.style.display = 'flex';
+                slot.style.flexDirection = 'column';
+                slot.style.alignItems = 'center';
+                slot.style.justifyContent = 'flex-end';
+                slot.style.padding = '10px';
+                slot.style.borderRadius = '10px 10px 0 0';
+                slot.style.color = '#fff';
+                slot.style.textShadow = '0 1px 3px rgba(0,0,0,0.8)';
+                slot.style.position = 'relative';
+                slot.style.zIndex = '2';
+                slot.style.height = p.pos === 1 ? '160px' : (p.pos === 2 ? '130px' : '110px');
+                slot.style.width = '30%';
+                slot.style.minWidth = '90px';
+                
+                const avatar = document.createElement('div');
+                avatar.className = 'avatar-small';
+                avatar.style.width = p.pos === 1 ? '64px' : '50px';
+                avatar.style.height = p.pos === 1 ? '64px' : '50px';
+                avatar.style.borderRadius = '50%';
+                avatar.style.border = '2px solid #fff';
+                avatar.style.backgroundSize = 'cover';
+                avatar.style.backgroundPosition = 'center';
+                avatar.style.marginBottom = '5px';
+                avatar.style.backgroundImage = u.photoUrl ? `url(${u.photoUrl})` : 'none';
+                if (!u.photoUrl) avatar.style.backgroundColor = '#555';
+                
+                const name = document.createElement('div');
+                name.style.fontWeight = 'bold';
+                name.style.fontSize = p.pos === 1 ? '1.1rem' : '0.9rem';
+                name.style.marginBottom = '2px';
+                name.style.textAlign = 'center';
+                name.textContent = u.name;
+                
+                const confrerie = document.createElement('div');
+                confrerie.style.fontSize = '0.7rem';
+                confrerie.style.opacity = '0.9';
+                confrerie.style.marginBottom = '4px';
+                confrerie.style.textAlign = 'center';
+                confrerie.textContent = `🛡️ ${confDisplay}`;
+                
+                const score = document.createElement('div');
+                score.style.fontWeight = 'bold';
+                score.style.fontSize = '0.8rem';
+                score.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                score.style.padding = '2px 6px';
+                score.style.borderRadius = '10px';
+                score.style.whiteSpace = 'nowrap';
+                score.innerHTML = `🔥 ${u.weekly} | 🌍 ${u.total}`;
+                
+                const posBadge = document.createElement('div');
+                posBadge.style.position = 'absolute';
+                posBadge.style.bottom = '-12px';
+                posBadge.style.backgroundColor = '#fff';
+                posBadge.style.color = '#000';
+                posBadge.style.width = '24px';
+                posBadge.style.height = '24px';
+                posBadge.style.borderRadius = '50%';
+                posBadge.style.display = 'flex';
+                posBadge.style.justifyContent = 'center';
+                posBadge.style.alignItems = 'center';
+                posBadge.style.fontWeight = 'bold';
+                posBadge.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+                posBadge.textContent = p.pos;
+                
+                slot.appendChild(avatar);
+                slot.appendChild(name);
+                slot.appendChild(confrerie);
+                slot.appendChild(score);
+                slot.appendChild(posBadge);
+                
+                podiumPlaces.appendChild(slot);
+            } else {
+                const slot = document.createElement('div');
+                slot.className = `podium-slot ${p.class}`;
+                slot.style.height = p.pos === 1 ? '160px' : (p.pos === 2 ? '130px' : '110px');
+                slot.style.width = '30%';
+                slot.style.minWidth = '90px';
+                slot.style.opacity = '0.5';
+                slot.style.display = 'flex';
+                slot.style.justifyContent = 'center';
+                slot.style.alignItems = 'flex-end';
+                slot.style.paddingBottom = '10px';
+                slot.style.borderRadius = '10px 10px 0 0';
+                slot.textContent = p.pos;
+                podiumPlaces.appendChild(slot);
+            }
+        });
     }
 
     usersData.forEach((u, index) => {
@@ -1287,6 +1391,7 @@ function setActiveTab(tab) {
     if (navMainButton) navMainButton.style.display = 'block';
 
     if (tab === 'home') {
+        if (homePodium) homePodium.style.display = 'block';
         // Afficher le classement complet au lieu du podium
         if (leaderboardListSection) leaderboardListSection.style.display = 'block';
         if (navHistory) navHistory.style.display = 'block';
