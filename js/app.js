@@ -893,7 +893,11 @@ document.getElementById('submit-br-btn').addEventListener('click', async () => {
     
     // ⚔️ Mettre à jour la progression des défis actifs
     try {
-        const challengesQuery = query(collection(db, 'challenges'), where('active', '==', true));
+        const challengesQuery = query(
+            collection(db, 'challenges'), 
+            where('active', '==', true),
+            where('status', '==', 'approved')
+        );
         const challengesDocs = await getDocs(challengesQuery);
         
         if (!challengesDocs.empty) {
@@ -902,8 +906,11 @@ document.getElementById('submit-br-btn').addEventListener('click', async () => {
             challengesDocs.forEach(challengeDoc => {
                 const challengeData = challengeDoc.data();
                 
+                // Filtrer: l'utilisateur doit participer ET le défi doit être visible
+                const isVisible = filterChallengesForUser([challengeData], currentUser).length > 0;
+                
                 // Vérifier si l'utilisateur participe à ce défi
-                if (challengeData.participants && challengeData.participants[currentUser]) {
+                if (isVisible && challengeData.participants && challengeData.participants[currentUser]) {
                     // Incrémenter le score du BR pour cet utilisateur dans le défi
                     batch.update(challengeDoc.ref, {
                         [`participants.${currentUser}.br`]: increment(1)
@@ -2310,7 +2317,25 @@ function loadActiveChallenges() {
 // ================================================
 
 function displayWinners(usersData) {
-    if (!usersData || usersData.length === 0) return;
+    if (!usersData || usersData.length === 0) {
+        console.warn('⚠️ displayWinners: usersData vide');
+        return;
+    }
+    
+    // Vérifier que les éléments DOM existent
+    const globalNameEl = document.getElementById('global-winner-name');
+    const globalScoreEl = document.getElementById('global-winner-score');
+    const weeklyNameEl = document.getElementById('last-week-winner-name');
+    const weeklyScoreEl = document.getElementById('last-week-winner-score');
+    
+    if (!globalNameEl || !globalScoreEl || !weeklyNameEl || !weeklyScoreEl) {
+        console.error('❌ displayWinners: Éléments DOM manquants');
+        console.log('  global-winner-name:', globalNameEl);
+        console.log('  global-winner-score:', globalScoreEl);
+        console.log('  last-week-winner-name:', weeklyNameEl);
+        console.log('  last-week-winner-score:', weeklyScoreEl);
+        return;
+    }
     
     // Trier par score global (total)
     const sortedByTotal = [...usersData].sort((a, b) => {
@@ -2326,24 +2351,33 @@ function displayWinners(usersData) {
         return weeklyB - weeklyA;
     });
     
-    // Afficher les gagnants
-    const globalWinner = sortedByTotal[0];
-    const weeklyWinner = sortedByWeekly[0];
-    
-    if (globalWinner) {
-        document.getElementById('global-winner-name').textContent = globalWinner.name;
-        document.getElementById('global-winner-score').textContent = ` (${globalWinner.total || 0} pts)`;
-    }
-    
-    if (weeklyWinner) {
-        document.getElementById('last-week-winner-name').textContent = weeklyWinner.name;
-        document.getElementById('last-week-winner-score').textContent = ` (${weeklyWinner.weekly || 0} pts)`;
-    }
-    
-    console.log('✅ Gagnants affichés', { 
-        globalWinner: globalWinner?.name, 
-        weeklyWinner: weeklyWinner?.name 
+    console.log('📊 displayWinners - Données reçues:', {
+        totalUsers: usersData.length,
+        topByTotal: sortedByTotal[0],
+        topByWeekly: sortedByWeekly[0]
     });
+    
+    // Afficher le gagnant global
+    const globalWinner = sortedByTotal[0];
+    if (globalWinner) {
+        globalNameEl.textContent = globalWinner.name || 'N/A';
+        globalScoreEl.textContent = ` (${globalWinner.total || 0} pts)`;
+        console.log('✅ Gagnant Global:', globalWinner.name, globalWinner.total);
+    } else {
+        globalNameEl.textContent = 'Aucun';
+        globalScoreEl.textContent = ' (0 pts)';
+    }
+    
+    // Afficher le gagnant de la semaine
+    const weeklyWinner = sortedByWeekly[0];
+    if (weeklyWinner) {
+        weeklyNameEl.textContent = weeklyWinner.name || 'N/A';
+        weeklyScoreEl.textContent = ` (${weeklyWinner.weekly || 0} pts)`;
+        console.log('✅ Gagnant Semaine:', weeklyWinner.name, weeklyWinner.weekly);
+    } else {
+        weeklyNameEl.textContent = 'Aucun';
+        weeklyScoreEl.textContent = ' (0 pts)';
+    }
 }
 
 function displayChallengesOnHome() {
@@ -2866,7 +2900,7 @@ function displayPendingChallenges(challenges) {
                     <h4 style="margin: 0 0 8px 0; color: var(--primary-color);">⚔️ ${challenge.title}</h4>
                     <p style="margin: 3px 0; font-size: 0.9rem;">
                         <strong>Créateur:</strong> ${challenge.creator}<br>
-                        <strong>Portée:</strong> 🌍 Global<br>
+                        <strong>Portée:</strong> ${challenge.scope === 'global' ? '🌍 Global' : '🏰 Confrérie'}<br>
                         <strong>Participants:</strong> ${participantCount}<br>
                         <strong>Type:</strong> ${challenge.type}<br>
                         <strong>Récompense:</strong> ${challenge.reward}
@@ -2948,6 +2982,22 @@ if (createChallengeBtn) {
     createChallengeBtn.addEventListener('click', createChallenge);
 }
 
+// Filtre les défis selon leur portée et participation
+function filterChallengesForUser(allChallenges, userId) {
+    return allChallenges.filter(challenge => {
+        // Les défis globaux sont toujours visibles
+        if (challenge.scope === 'global') {
+            return true;
+        }
+        // Les défis de confrérie ne sont visibles que par les participants
+        if (challenge.scope === 'confrerie') {
+            return challenge.participants && challenge.participants[userId];
+        }
+        // Pour la rétrocompatibilité, afficher les anciens défis sans scope
+        return true;
+    });
+}
+
 // Charger les défis en temps réel
 const challengesRef = query(
     collection(db, 'challenges'),
@@ -2955,12 +3005,15 @@ const challengesRef = query(
     where('status', '==', 'approved')
 );
 onSnapshot(challengesRef, (snapshot) => {
-    challenges = snapshot.docs.map(doc => ({
+    const allChallenges = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
+    
+    // Filtrer les défis selon le scope et la participation
+    challenges = filterChallengesForUser(allChallenges, currentUser);
     window.challenges = challenges; // Keep window ref in sync
-    console.log('%c📊 Défis chargés', 'color: #dac103; font-weight: bold;', challenges.length);
+    console.log('%c📊 Défis chargés', 'color: #dac103; font-weight: bold;', `${challenges.length}/${allChallenges.length}`);
     // Rafraîchir l'affichage sur l'accueil
     if (currentTab === 'home') {
         displayChallengesOnHome();

@@ -101,13 +101,13 @@ header h1 { font-size: 1.5rem; }
 #main-btn {
     width: 180px; height: 180px; border-radius: 50%;
     background-size: 95%; background-repeat: no-repeat; background-position: center;
-    border: 5px solid #750808; color: white;
+    border: 5px solid #750808; color: #750808;
     box-shadow: 0 0 30px rgba(117, 8, 8, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease; /* cette ligne sert a animer le bouton si on veut quelquechose de plus épique il faut rajouter une animation keyframe */
     cursor: pointer;
 }
-#main-btn:hover { transform: scale(1.08); box-shadow: 0 0 40px rgba(117, 8, 8, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.15); }
-#main-btn:active { transform: scale(0.94); }
+#main-btn:hover { transform: scale(1.00); box-shadow: 0 0 40px rgba(117, 8, 8, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.15); }
+#main-btn:active { transform: scale(1.00); }
 
 #joke-text { margin-top: 20px; font-style: italic; color: var(--text-muted); min-height: 24px; }
 
