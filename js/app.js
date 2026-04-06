@@ -25,10 +25,17 @@ import {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Expose db to window for test suite and debugging
+window.db = db;
+
 const ADMIN_USER = "Étienne";
 let currentUser = localStorage.getItem('cinqContreUnUser');
 let USERS = [];
 let userPhotoByUser = {}; // pour afficher avatars dans commentaire
+
+// Expose global variables to window for test suite
+window.currentUser = currentUser;
+window.USERS = USERS;
 let ratings = { duration: 0, pleasure: 0, quality: 0 };
 let currentBrId = null;
 let editingConfrerieId = null;
@@ -232,6 +239,8 @@ let clickSound = null;
 
 // ⚔️ SYSTÈME DE DÉFIS
 let challenges = [];
+window.challenges = challenges; // Expose to window for test suite
+
 let challengeModalOverlay = document.getElementById('challenges-modal-overlay');
 let closeChallengesBtn = document.getElementById('close-challenges-btn');
 let createChallengeBtn = document.getElementById('create-challenge-btn');
@@ -526,6 +535,7 @@ async function init() {
             const userDoc = await getDoc(doc(db, "users", autoUser));
             if (userDoc.exists()) {
                 currentUser = autoUser;
+                window.currentUser = currentUser; // Keep window ref in sync
                 localStorage.setItem('cinqContreUnUser', currentUser);
             }
         }
@@ -536,6 +546,7 @@ async function init() {
     const usersSnap = await getDocs(collection(db, "users"));
     USERS = [];
     usersSnap.forEach(d => USERS.push(d.data().name));
+    window.USERS = USERS; // Keep window ref in sync
 
     if (currentUser && USERS.includes(currentUser)) {
         loginScreen.classList.remove('active');
@@ -588,6 +599,7 @@ async function loadLoginButtons() {
         });
         userGrid.appendChild(btn);
     });
+    window.USERS = USERS; // Keep window ref in sync
 }
 
 if (codeSubmit) {
@@ -613,6 +625,7 @@ if (codeSubmit) {
             return;
         }
         currentUser = pendingUser;
+        window.currentUser = currentUser; // Keep window ref in sync
         localStorage.setItem('cinqContreUnUser', currentUser);
         await setDoc(userRef, { name: currentUser }, { merge: true });
         await saveCurrentIpForUser(userRef);
@@ -625,6 +638,7 @@ if (codeSubmit) {
 logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('cinqContreUnUser');
     currentUser = null;
+    window.currentUser = currentUser; // Keep window ref in sync
     init();
 });
 
@@ -2346,36 +2360,78 @@ function loadChallengeHistory() {
 }
 
 async function deleteChallenge(challengeId) {
+    console.log('%c🗑️ SUPPRESSION DE DÉFI - DÉBUT', 'color: #ff6600; font-size: 12px; font-weight: bold;');
+    console.log(`  ID à supprimer: ${challengeId}`);
+    
     if (!confirm('⚠️ Supprimer ce défi vraiment? Les progrès seront perdus.')) {
+        console.log('❌ Suppression annulée par l\'utilisateur');
+        return;
+    }
+    
+    console.log('✅ Suppression confirmée par utilisateur');
+    
+    if (!window.db) {
+        console.error('❌ Firestore DB non disponible');
+        alert('❌ Erreur: Base de données non disponible');
         return;
     }
     
     try {
+        console.log(`💾 Envoi supprimer vers Firestore: challenges/${challengeId}`);
+        
         await deleteDoc(doc(db, 'challenges', challengeId));
+        
+        console.log('%c✅ DÉFI SUPPRIMÉ AVEC SUCCÈS!', 'color: #00ff00; font-size: 14px; font-weight: bold;');
+        
         alert('✅ Défi supprimé!');
+        
+        // Reload challenges
+        console.log('🔄 Rechargement de la liste...');
         loadActiveChallenges();
+        
+        console.log('%c🗑️ SUPPRESSION DE DÉFI - TERMINÉE ✅', 'color: #00ff00; font-size: 12px; font-weight: bold;');
+        
     } catch (err) {
-        console.error('Erreur suppression défi:', err);
-        alert('❌ Erreur: ' + err.message);
+        console.error('%c❌ ERREUR SUPPRESSION DÉFI', 'color: #ff0000; font-size: 14px; font-weight: bold;');
+        console.error('Code:', err.code);
+        console.error('Message:', err.message);
+        console.error('Stack:', err.stack);
+        
+        let errorMsg = err.message;
+        if (err.code === 'permission-denied') {
+            errorMsg = 'Permission refusée. Vous pouvez être le créateur du défi.';
+        }
+        
+        alert(`❌ Erreur lors de la suppression:\n${errorMsg}`);
     }
 }
 
 function displayChallengeProgress() {
+    console.log('%c📊 AFFICHAGE PROGRESSION - DÉBUT', 'color: #00a8ff; font-size: 12px; font-weight: bold;');
+    
     const container = document.getElementById('challenge-progress-container');
     if (!container) {
-        console.warn('Container challenge-progress-container not found');
+        console.warn('⚠️ Container #challenge-progress-container non trouvé');
         return;
     }
     
+    console.log('✅ Container trouvé');
+    
     if (!window.challenges || window.challenges.length === 0) {
+        console.log('ℹ️ Pas de défis actifs');
         container.style.display = 'none';
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Aucun défi actif pour le moment.</p>';
         return;
     }
+    
+    console.log(`📊 Affichage ${window.challenges.length} défi(s)`);
     
     container.innerHTML = '';
     container.style.display = 'block';
     
-    window.challenges.forEach(ch => {
+    window.challenges.forEach((ch, index) => {
+        console.log(`  Défi #${index + 1}: "${ch.title}" (${Object.keys(ch.participants || {}).length} participants)`);
+        
         const div = document.createElement('div');
         div.style.margin = '15px 0';
         div.style.padding = '15px';
@@ -2410,7 +2466,9 @@ function displayChallengeProgress() {
         
         // Participants as spermatozoids
         if (ch.participants) {
+            let participantNum = 0;
             Object.entries(ch.participants).forEach(([user, data]) => {
+                participantNum++;
                 const pct = Math.min(((data.br || 0) / ch.target) * 100, 90);
                 const sperm = document.createElement('div');
                 sperm.style.position = 'absolute';
@@ -2430,6 +2488,7 @@ function displayChallengeProgress() {
                 sperm.title = `${user}: ${data.br || 0}/${ch.target}`;
                 sperm.innerText = 'o';
                 track.appendChild(sperm);
+                console.log(`    - Participant #${participantNum}: ${user} = ${data.br}/${ch.target} (${pct.toFixed(1)}%)`);
             });
         }
         
@@ -2448,6 +2507,8 @@ function displayChallengeProgress() {
         
         container.appendChild(div);
     });
+    
+    console.log('%c✅ AFFICHAGE PROGRESSION - TERMINÉ', 'color: #00ff00; font-size: 12px; font-weight: bold;');
 }
 
 function setChallengeScope(scope) {
@@ -2477,53 +2538,111 @@ function setChallengeScope(scope) {
     }
 }
 
-// Exposer les fonctions au global scope pour les onclick handlers HTML
-window.deleteChallenge = deleteChallenge;
-window.displayChallengeProgress = displayChallengeProgress;
-window.setChallengeScope = setChallengeScope;
-
 async function createChallenge() {
-    const type = document.getElementById('challenge-type').value;
-    const duration = document.getElementById('challenge-duration').value;
-    const target = document.getElementById('challenge-target').value;
-    const reward = document.getElementById('challenge-reward').value;
+    console.log('%c⚔️ CRÉATION DE DÉFI - DÉBUT', 'color: #ff9900; font-size: 12px; font-weight: bold;');
     
-    if (!target || target < 1) {
-        alert('Entre un objectif valide!');
+    // Étape 1: Récupérer les valeurs
+    const type = document.getElementById('challenge-type')?.value;
+    const duration = document.getElementById('challenge-duration')?.value;
+    const target = document.getElementById('challenge-target')?.value;
+    const reward = document.getElementById('challenge-reward')?.value;
+    
+    console.log('📋 Valeurs du formulaire:', { type, duration, target, reward });
+    
+    // Étape 2: Validation
+    if (!target || parseInt(target) < 1) {
+        console.error('❌ Validation échouée: target invalide');
+        alert('⚠️ Entre un objectif valide (nombre > 0)!');
         return;
     }
     
-    // Créer les participants avec TOUS les utilisateurs actifs
-    const participantsObj = {};
-    if (USERS && USERS.length > 0) {
-        USERS.forEach(user => {
-            participantsObj[user.name] = { user: user.name, br: 0 };
-        });
-    } else {
-        // Fallback: au moins l'utilisateur actuel
-        participantsObj[currentUser] = { user: currentUser, br: 0 };
+    if (!type) {
+        console.error('❌ Validation échouée: type manquant');
+        alert('⚠️ Sélectionne un type de défi!');
+        return;
     }
     
-    const now = new Date();
-    const endDate = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+    if (!duration) {
+        console.error('❌ Validation échouée: durée manquante');
+        alert('⚠️ Sélectionne une durée!');
+        return;
+    }
     
+    console.log('✅ Validation réussie');
+    
+    // Étape 3: Créer participants
+    const participantsObj = {};
+    let participantCount = 0;
+    
+    if (window.USERS && Array.isArray(window.USERS) && window.USERS.length > 0) {
+        window.USERS.forEach(user => {
+            if (user && user.name) {
+                participantsObj[user.name] = { user: user.name, br: 0 };
+                participantCount++;
+            }
+        });
+        console.log(`✅ ${participantCount} participants ajoutés de USERS`);
+    } else {
+        console.warn('⚠️ USERS vide ou invalide. Fallback sur currentUser');
+        if (window.currentUser) {
+            participantsObj[window.currentUser] = { user: window.currentUser, br: 0 };
+            participantCount = 1;
+        } else {
+            console.error('❌ currentUser est undefined!');
+            alert('❌ Erreur: utilisateur non identifié. Rafraichis la page.');
+            return;
+        }
+    }
+    
+    if (participantCount === 0) {
+        console.error('❌ Aucun participant ajouté');
+        alert('❌ Impossible d\'ajouter des participants');
+        return;
+    }
+    
+    // Étape 4: Créer dates
+    const now = new Date();
+    const durationDays = parseInt(duration);
+    const endDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+    
+    console.log(`📅 Dates: ${now.toISOString()} → ${endDate.toISOString()} (+${durationDays}j)`);
+    
+    // Étape 5: Construire l'objet défi
     const newChallenge = {
         id: `challenge_${Date.now()}`,
-        type,
+        type: type,
         title: `Défi: ${target} ${type === 'br-count' ? 'BR' : type === 'streak' ? 'jours' : 'points'}`,
         target: parseInt(target),
-        reward,
-        creator: currentUser,
+        reward: reward || 'Mystérieux! 🎁',
+        creator: window.currentUser,
         startDate: now.toISOString(),
         endDate: endDate.toISOString(),
         participants: participantsObj,
-        active: true
+        active: true,
+        createdAt: now.toISOString()
     };
     
+    console.log('🎯 Objet défi construit:', newChallenge);
+    
+    // Étape 6: Vérifier Firestore
+    if (!window.db) {
+        console.error('❌ Firestore DB non disponible');
+        alert('❌ Erreur: Base de données non disponible');
+        return;
+    }
+    
+    // Étape 7: Sauvegarder
     try {
-        // Sauvegarder dans Firebase
+        console.log(`💾 Envoi vers Firestore: challenges/${newChallenge.id}`);
+        
         await setDoc(doc(db, 'challenges', newChallenge.id), newChallenge);
-        alert(`✅ Défi créé pour ${Object.keys(participantsObj).length} participants! 🏆`);
+        
+        console.log('%c✅ DÉFI CRÉÉ AVEC SUCCÈS!', 'color: #00ff00; font-size: 14px; font-weight: bold;');
+        console.log(`  ID: ${newChallenge.id}`);
+        console.log(`  Titre: ${newChallenge.title}`);
+        console.log(`  Participants: ${participantCount}`);
+        
+        alert(`✅ Défi créé pour ${participantCount} participants! 🏆\n\n"${newChallenge.title}"`);
         
         // Reset form
         document.getElementById('challenge-type').value = 'br-count';
@@ -2531,12 +2650,31 @@ async function createChallenge() {
         document.getElementById('challenge-target').value = '';
         document.getElementById('challenge-reward').value = '';
         
+        console.log('🔄 Rechargement de la liste...');
+        
         // Reload challenges
         loadActiveChallenges();
         switchChallengeTab('active-challenges');
+        
+        console.log('%c⚔️ CRÉATION DE DÉFI - TERMINÉE ✅', 'color: #00ff00; font-size: 12px; font-weight: bold;');
+        
     } catch (err) {
-        console.error('Erreur création défi:', err);
-        alert('❌ Erreur lors de la création du défi');
+        console.error('%c❌ ERREUR CRÉATION DÉFI', 'color: #ff0000; font-size: 14px; font-weight: bold;');
+        console.error('Code:', err.code);
+        console.error('Message:', err.message);
+        console.error('Stack:', err.stack);
+        
+        // Traiter les erreurs spécifiques
+        let errorMsg = err.message;
+        if (err.code === 'permission-denied') {
+            errorMsg = 'Permission refusée par Firestore. Vérifier les règles de sécurité.';
+        } else if (err.code === 'unauthenticated') {
+            errorMsg = 'Non authentifié. Identifiez-vous d\'abord.';
+        } else if (err.code === 'failed-precondition') {
+            errorMsg = 'Firestore pas initialisé correctement.';
+        }
+        
+        alert(`❌ Erreur lors de la création du défi:\n\n${errorMsg}`);
     }
 }
 
@@ -2564,6 +2702,7 @@ onSnapshot(challengesRef, (snapshot) => {
         id: doc.id,
         ...doc.data()
     }));
+    window.challenges = challenges; // Keep window ref in sync
     console.log('%c📊 Défis chargés', 'color: #dac103; font-weight: bold;', challenges.length);
     // Rafraîchir l'affichage sur l'accueil
     if (currentTab === 'home') {
@@ -2576,3 +2715,11 @@ setActiveTab('home');
 
 // 🎯 INITIALISER LE SYSTÈME MOTIVANT
 initMotivationalText();
+
+// ================================================
+// EXPOSE FUNCTIONS TO WINDOW FOR TEST SUITE
+// ================================================
+window.deleteChallenge = deleteChallenge;
+window.setChallengeScope = setChallengeScope;
+window.displayChallengeProgress = displayChallengeProgress;
+window.createChallenge = createChallenge;
